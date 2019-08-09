@@ -38,6 +38,7 @@
 #include <chrono>
 #include <ctime>
 #include <cstring>
+#include <bitset>
 
 #ifdef _WINDOWS
 #define __func__ __FUNCTION__
@@ -263,38 +264,6 @@ namespace awsbwhal {
     } while (i < number);
 
     return value;
-  }
-
-  // Convert decimal to binary string
-  // NOTE: length of string is always sizeof(uint32_t) * 8
-  std::string AwsXcl::dec2bin(uint32_t n) {
-    char result[(sizeof(uint32_t) * 8) + 1];
-    unsigned index = sizeof(uint32_t) * 8;
-    result[index] = '\0';
-
-    do {
-      result[ --index ] = '0' + (n & 1);
-    } while (n >>= 1);
-
-    for (int i=index-1; i >= 0; --i)
-      result[i] = '0';
-
-    return std::string( result );
-  }
-
-  // Convert decimal to binary string of length bits
-  std::string AwsXcl::dec2bin(uint32_t n, unsigned bits) {
-    char result[bits + 1];
-    unsigned index = bits;
-    result[index] = '\0';
-
-    do result[ --index ] = '0' + (n & 1);
-    while (n >>= 1);
-
-    for (int i=index-1; i >= 0; --i)
-      result[i] = '0';
-
-    return std::string( result );
   }
 
   // Reset all APM trace AXI stream FIFOs
@@ -1020,9 +989,11 @@ namespace awsbwhal {
       traceVector.mArray[wordnum - clockWordIndex + 1] = results;
 
       if (mLogStream.is_open()) {
+        std::string s1 = std::bitset<(sizeof(uint32_t) * 8)>((uint32_t)(temp>>32)).to_string();
+        std::string s2 = std::bitset<(sizeof(uint32_t) * 8)>((uint32_t)(temp&0xFFFFFFFF)).to_string();
+
         mLogStream << "  Trace sample " << std::dec << wordnum << ": ";
-//        mLogStream << dec2bin(uint32_t(temp >> 32)) << " " << dec2bin(uint32_t(temp & 0xFFFFFFFF));
-        mLogStream << dec2bin(uint32_t(temp>>32)) << " " << dec2bin(uint32_t(temp&0xFFFFFFFF));
+        mLogStream << s1 << " " << s2 ;
         mLogStream << std::endl;
         mLogStream << " Timestamp : " << results.Timestamp << "   ";
         mLogStream << "Event Type : " << results.EventType << "   ";

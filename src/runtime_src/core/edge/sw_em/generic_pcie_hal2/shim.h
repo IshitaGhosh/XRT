@@ -171,8 +171,6 @@ namespace xclcpuemhal2 {
       size_t resetFifos(xclPerfMonType type);
       uint32_t bin2dec(std::string str, int start, int number);
       uint32_t bin2dec(const char * str, int start, int number);
-      std::string dec2bin(uint32_t n);
-      std::string dec2bin(uint32_t n, unsigned bits);
 
       std::mutex mtx;
       unsigned int message_size;
