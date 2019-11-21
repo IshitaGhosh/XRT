@@ -40,11 +40,19 @@ std::string HalDevice::getDebugIPlayoutPath()
 }
 uint32_t HalDevice::getDebugIPCount()
 {
+#ifdef _WIN32
   return xclGetDebugIPCount(mHalDevice);
+#else
+  return 0;
+#endif
 }
 uint32_t HalDevice::getDebugIPData(void* buffer, size_t size, uint32_t numDebugIP)
 {
+#ifdef _WIN32
   return xclGetDebugIPData(mHalDevice, buffer, size, numDebugIP);
+#else
+  return 0;
+#endif
 }
 uint32_t HalDevice::getNumLiveProcesses()
 {
