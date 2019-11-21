@@ -1059,6 +1059,10 @@ XCL_DRIVER_DLLESPEC const struct axlf_section_header* wrap_get_axlf_section(cons
 
 XCL_DRIVER_DLLESPEC size_t xclDebugReadIPStatus(xclDeviceHandle handle, enum xclDebugReadType type,
                                                                            void* debugResults);
+#ifdef _WIN32
+XCL_DRIVER_DLLESPEC uint32_t xclGetDebugIPCount(xclDeviceHandle handle);
+XCL_DRIVER_DLLESPEC uint32_t xclGetDebugIPData(xclDeviceHandle handle, void* buffer, size_t size, uint32_t numDbgIP);
+#endif
 
 #ifdef __cplusplus
 }
