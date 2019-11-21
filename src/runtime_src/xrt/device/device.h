@@ -891,6 +891,18 @@ public:
     return m_hal->getDebugIPlayoutPath();
   }
 
+  hal::operations_result<uint32_t>
+  getDebugIPCount()
+  {
+    return m_hal->getDebugIPCount();
+  }
+
+  hal::operations_result<uint32_t>
+  getDebugIPData(void* buffer, size_t size, uint32_t count)
+  {
+    return m_hal->getDebugIPData(buffer, size, count);
+  }
+
   hal::operations_result<int>
   getTraceBufferInfo(uint32_t nSamples, uint32_t& traceSamples, uint32_t& traceBufSz)
   {

@@ -32,6 +32,14 @@ std::string XrtDevice::getDebugIPlayoutPath()
 {
   return mXrtDevice->getDebugIPlayoutPath().get();
 }
+uint32_t XrtDevice::getDebugIPCount()
+{
+  return mXrtDevice->getDebugIPCount().get();
+}
+uint32_t XrtDevice::getDebugIPData(void* buffer, size_t size, uint32_t numDebugIP)
+{
+  return mXrtDevice->getDebugIPData(buffer, size, numDebugIP).get();
+}
 uint32_t XrtDevice::getNumLiveProcesses()
 {
    return mXrtDevice->getNumLiveProcesses().get();

@@ -373,6 +373,7 @@ DeviceIntf::~DeviceIntf()
     if(mIsDebugIPlayoutRead || !mDevice)
         return;
 
+#ifndef _WIN32
     std::string path = mDevice->getDebugIPlayoutPath();
     if(path.empty()) {
         // error ? : for HW_emu this will be empty for now ; but as of current status should not have been called 
@@ -426,6 +427,34 @@ DeviceIntf::~DeviceIntf()
     }
 
     ifs.close();
+#else
+// _WIN32
+    uint32_t debugIPcount = mDevice->getDebugIPCount();
+    debug_ip_layout *map  = new debug_ip_layout[debugIPcount];
+    mDevice->getDebugIPData((char*)map, (sizeof(debug_ip_layout)*debugIPcount), debugIPcount);
+    for(uint32_t i = 0; i < debugIPcount; i++) {
+      switch(map->m_debug_ip_data[i].m_type) {
+        case AXI_MM_MONITOR :        aimList.push_back(new AIM(mDevice, i, &(map->m_debug_ip_data[i])));
+                                     break;
+        case ACCEL_MONITOR  :        amList.push_back(new AM(mDevice, i, &(map->m_debug_ip_data[i])));
+                                     break;
+        case AXI_STREAM_MONITOR :    asmList.push_back(new ASM(mDevice, i, &(map->m_debug_ip_data[i])));
+                                     break;
+        case AXI_MONITOR_FIFO_LITE : fifoCtrl = new TraceFifoLite(mDevice, i, &(map->m_debug_ip_data[i]));
+                                     break;
+        case AXI_MONITOR_FIFO_FULL : fifoRead = new TraceFifoFull(mDevice, i, &(map->m_debug_ip_data[i]));
+                                     break;
+        case AXI_TRACE_FUNNEL :      traceFunnel = new TraceFunnel(mDevice, i, &(map->m_debug_ip_data[i]));
+                                     break;
+        case TRACE_S2MM :            traceDMA = new TraceS2MM(mDevice, i, &(map->m_debug_ip_data[i]));
+                                     break;
+        default : break;
+        // case AXI_STREAM_PROTOCOL_CHECKER
+      }
+    }
+    delete [] map;
+    map = nullptr;
+#endif
 
     auto sorter = [] (const ProfileIP* lhs, const ProfileIP* rhs)
     {
@@ -434,6 +463,8 @@ DeviceIntf::~DeviceIntf()
     std::sort(aimList.begin(), aimList.end(), sorter);
     std::sort(amList.begin(), amList.end(), sorter);
     std::sort(asmList.begin(), asmList.end(), sorter);
+
+    mIsDebugIPlayoutRead = true;
 
 #if 0
     for(auto mon : aimList) {
@@ -452,8 +483,6 @@ DeviceIntf::~DeviceIntf()
     if(traceDMA) traceDMA->showProperties();
     if(traceFunnel) traceFunnel->showProperties();
 #endif
-
-    mIsDebugIPlayoutRead = true;
   }
 
   void DeviceIntf::configureDataflow(bool* ipConfig)

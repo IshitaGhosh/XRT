@@ -149,6 +149,8 @@ operations(const std::string &fileName, void *fileHandle, unsigned int count)
   mGetNumLiveProcesses = (xclGetNumLiveProcessesFuncType)xrt_core::dlsym(const_cast<void *>(mDriverHandle), "xclGetNumLiveProcesses");
   mGetSysfsPath = (xclGetSysfsPathFuncType)xrt_core::dlsym(const_cast<void *>(mDriverHandle), "xclGetSysfsPath");
   mGetDebugIPlayoutPath = (xclGetDebugIPlayoutPathFuncType)xrt_core::dlsym(const_cast<void*>(mDriverHandle), "xclGetDebugIPlayoutPath");
+  mGetDebugIPCount = (xclGetDebugIPCountFuncType)xrt_core::dlsym(const_cast<void*>(mDriverHandle), "xclGetDebugIPCount");
+  mGetDebugIPData = (xclGetDebugIPDataFuncType)xrt_core::dlsym(const_cast<void*>(mDriverHandle), "xclGetDebugIPData");
   mGetTraceBufferInfo = (xclGetTraceBufferInfoFuncType)xrt_core::dlsym(const_cast<void*>(mDriverHandle), "xclGetTraceBufferInfo");
   mReadTraceData = (xclReadTraceDataFuncType)xrt_core::dlsym(const_cast<void*>(mDriverHandle), "xclReadTraceData");
 }

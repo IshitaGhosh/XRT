@@ -38,6 +38,14 @@ std::string HalDevice::getDebugIPlayoutPath()
   xclGetDebugIPlayoutPath(mHalDevice, layoutPath, 512);
   return std::string(layoutPath);
 }
+uint32_t HalDevice::getDebugIPCount()
+{
+  return xclGetDebugIPCount(mHalDevice);
+}
+uint32_t HalDevice::getDebugIPData(void* buffer, size_t size, uint32_t numDebugIP)
+{
+  return xclGetDebugIPData(mHalDevice, buffer, size, numDebugIP);
+}
 uint32_t HalDevice::getNumLiveProcesses()
 {
   return xclGetNumLiveProcesses(mHalDevice);

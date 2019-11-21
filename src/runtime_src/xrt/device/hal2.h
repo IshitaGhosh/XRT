@@ -674,6 +674,22 @@ public:
     return pathStr;
   }
 
+  virtual hal::operations_result<uint32_t>
+  getDebugIPCount()
+  {
+    if(!m_ops->mGetDebugIPCount)
+      return hal::operations_result<uint32_t>();
+    return m_ops->mGetDebugIPCount(m_handle);
+  }
+
+  virtual hal::operations_result<uint32_t>
+  getDebugIPData(void* buffer, size_t size, uint32_t count)
+  {
+    if(!m_ops->mGetDebugIPData)
+      return hal::operations_result<uint32_t>();
+    return m_ops->mGetDebugIPData(m_handle, buffer, size, count);
+  }
+
   virtual hal::operations_result<int>
   getTraceBufferInfo(uint32_t nSamples, uint32_t& traceSamples, uint32_t& traceBufSz)
   {

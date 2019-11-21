@@ -139,6 +139,8 @@ private:
   typedef int     (*xclGetSysfsPathFuncType)(xclDeviceHandle handle, const char* subdev, const char* entry, char* sysfsPath, size_t size);
 
   typedef int     (*xclGetDebugIPlayoutPathFuncType)(xclDeviceHandle handle, char* layoutPath, size_t size);
+  typedef uint32_t (*xclGetDebugIPCountFuncType)(xclDeviceHandle handle);
+  typedef uint32_t (*xclGetDebugIPDataFuncType)(xclDeviceHandle handle, void* buffer, size_t size, uint32_t count);
 
   typedef int (*xclGetTraceBufferInfoFuncType)(xclDeviceHandle handle, uint32_t nSamples, uint32_t& traceSamples, uint32_t& traceBufSz);
   typedef int (*xclReadTraceDataFuncType)(xclDeviceHandle handle, void* traceBuf, uint32_t traceBufSz, uint32_t numSamples, uint64_t ipBaseAddress, uint32_t& wordsPerSample);
@@ -217,6 +219,8 @@ public:
   xclGetSysfsPathFuncType mGetSysfsPath;
 
   xclGetDebugIPlayoutPathFuncType mGetDebugIPlayoutPath;
+  xclGetDebugIPCountFuncType mGetDebugIPCount;
+  xclGetDebugIPDataFuncType mGetDebugIPData;
   xclGetTraceBufferInfoFuncType mGetTraceBufferInfo;
   xclReadTraceDataFuncType mReadTraceData;
 

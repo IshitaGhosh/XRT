@@ -32,7 +32,11 @@ public:
   virtual ~Device() {}
 
   virtual std::string getDebugIPlayoutPath() = 0;
+  virtual uint32_t getDebugIPCount() = 0;
+  virtual uint32_t getDebugIPData(void* buffer, size_t size, uint32_t count) = 0;
+
   virtual uint32_t getNumLiveProcesses() = 0;
+
   virtual int write(xclAddressSpace space, uint64_t offset, const void *hostBuf, size_t size) = 0;
   virtual int read(xclAddressSpace space, uint64_t offset, void *hostBuf, size_t size) = 0;
   virtual int unmgdRead(unsigned flags, void *buf, size_t count, uint64_t offset) = 0;

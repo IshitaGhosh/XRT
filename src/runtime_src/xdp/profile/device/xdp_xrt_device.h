@@ -33,7 +33,11 @@ public:
   virtual ~XrtDevice();
 
   virtual std::string getDebugIPlayoutPath();
+  virtual uint32_t getDebugIPCount();
+  virtual uint32_t getDebugIPData(void* buffer, size_t size, uint32_t numDebugIP);
+
   virtual uint32_t getNumLiveProcesses();
+
   virtual int write(xclAddressSpace space, uint64_t offset, const void *hostBuf, size_t size);
   virtual int read(xclAddressSpace space, uint64_t offset, void *hostBuf, size_t size);
   virtual int unmgdRead(unsigned flags, void *buf, size_t count, uint64_t offset);

@@ -669,6 +669,18 @@ public:
     return operations_result<std::string>();
   }
 
+  virtual operations_result<uint32_t>
+  getDebugIPCount()
+  {
+    return operations_result<uint32_t>();
+  }
+
+  virtual operations_result<uint32_t>
+  getDebugIPData(void* /*buffer*/, size_t /*size*/, uint32_t /*count*/)
+  {
+    return operations_result<uint32_t>();
+  }
+
   virtual operations_result<int>
   getTraceBufferInfo(uint32_t nSamples, uint32_t& traceSamples, uint32_t& traceBufSz)
   {
