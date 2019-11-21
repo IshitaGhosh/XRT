@@ -201,6 +201,8 @@ typedef enum _XOCL_STAT_CLASS {
     XoclStatIpLayout,
     XoclStatKds,
     XoclStatKdsCU,
+    XoclStatDebugIpLayout,
+    XoclStatDebugIpLayoutData,
 
 } XOCL_STAT_CLASS, *PXOCL_STAT_CLASS;
 
@@ -329,6 +331,45 @@ typedef struct _XOCL_KDS_CU_INFORMATION {
     XOCL_KDS_CU CuInfo[1];
 
 } XOCL_KDS_CU_INFORMATION, *PXOCL_KDS_CU_INFORMATION;
+
+//
+// XoclStatDebugIpLayout
+//
+#if 0
+enum DEBUG_IP_TYPE {
+    UNDEFINED = 0,
+    LAPC,
+    ILA,
+    AXI_MM_MONITOR,
+    AXI_TRACE_FUNNEL,
+    AXI_MONITOR_FIFO_LITE,
+    AXI_MONITOR_FIFO_FULL,
+    ACCEL_MONITOR,
+    AXI_STREAM_MONITOR,
+    AXI_STREAM_PROTOCOL_CHECKER,
+    TRACE_S2MM,
+    AXI_DMA,
+    TRACE_S2MM_FULL
+};
+#endif
+
+typedef struct _XU_DEBUG_IP_DATA {
+    uint8_t m_type; // type of enum DEBUG_IP_TYPE
+    uint8_t m_index_lowbyte;
+    uint8_t m_properties;
+    uint8_t m_major;
+    uint8_t m_minor;
+    uint8_t m_index_highbyte;
+    uint8_t m_reserved[2];
+    uint64_t m_base_address;
+    char    m_name[128];
+} XU_DEBUG_IP_DATA, *PXU_DEBUG_IP_DATA;
+
+typedef struct _XU_DEBUG_IP_LAYOUT {
+    uint16_t m_count;
+    XU_DEBUG_IP_DATA m_debug_ip_data[1];
+} XU_DEBUG_IP_LAYOUT, *PXU_DEBUG_IP_LAYOUT;
+
 
 //
 // IOCTL_XOCL_PREAD_BO

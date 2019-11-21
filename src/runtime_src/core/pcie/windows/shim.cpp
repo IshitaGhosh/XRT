@@ -641,6 +641,72 @@ done:
     return error ? false : true;
   }
 
+  bool SendIoctlStatDebugIpLayout()
+  {
+    HANDLE deviceHandle = m_dev;
+    DWORD error = 0; 
+    DWORD bytesWritten;
+    DWORD bytesToRead;
+    XOCL_STAT_CLASS statClass  = XoclStatDebugIpLayout;
+    XOCL_STAT_CLASS statClass1 = XoclStatDebugIpLayoutData;
+    XU_DEBUG_IP_LAYOUT debugIpLayout;
+    PXU_DEBUG_IP_DATA  debugIpLayoutData = nullptr;
+
+    bytesToRead = sizeof(debugIpLayout);
+
+    if (!DeviceIoControl(deviceHandle,
+                         IOCTL_XOCL_STAT,
+                         &statClass,
+                         sizeof(statClass),
+                         &debugIpLayout,
+                         sizeof(debugIpLayout),
+                         &bytesWritten,
+                         nullptr)) {
+
+      error = GetLastError();
+
+      xrt_core::message::
+        send(xrt_core::message::severity_level::XRT_ERROR, "XRT", "DeviceIoControl failed with error %d while reading Debug IP Layout", error);
+
+      goto out; 
+    }    
+
+    printf("Got XoclStatDebugIpLayout Data:\n");
+    printf("Number of Debug IPs : %d\n", debugIpLayout.m_count);
+
+    debugIpLayoutData = new XU_DEBUG_IP_DATA[debugIpLayout.m_count];
+
+    bytesToRead = sizeof(XU_DEBUG_IP_DATA) * debugIpLayout.m_count;
+
+    if (!DeviceIoControl(deviceHandle,
+                         IOCTL_XOCL_STAT,
+                         &statClass1,
+                         sizeof(statClass1),
+                         debugIpLayoutData,
+                         bytesToRead,
+                         &bytesWritten,
+                         nullptr)) {
+
+      error = GetLastError();
+
+      xrt_core::message::
+        send(xrt_core::message::severity_level::XRT_ERROR, "XRT", "DeviceIoControl failed with error %d while reading Debug IP Layout Data", error);
+
+      goto out;
+    }
+
+    for (size_t i = 0; i < debugIpLayout.m_count; i++) {
+      printf("\tDebug IP Type=%d, base address =0x%llx, name=%s\n",
+             debugIpLayoutData[i].m_type,
+             debugIpLayoutData[i].m_base_address,
+             debugIpLayoutData[i].m_name);
+    }
+
+  out:
+
+    return error ? false : true;
+  }
+
   int
   load_xclbin(const struct axlf* buffer)
   {
@@ -685,6 +751,25 @@ done:
       return 1;
     }
 
+// TEST CODE
+
+    //
+    // Third test...
+    //
+    xrt_core::message::
+      send(xrt_core::message::severity_level::XRT_DEBUG, "XRT", "Calling IOCTL_XOCL_STAT (XoclStatDebugIpLayout)... ");
+
+    succeeded = SendIoctlStatDebugIpLayout();
+
+    if (succeeded) {
+      xrt_core::message::
+        send(xrt_core::message::severity_level::XRT_DEBUG, "XRT", "OK");
+    }
+    else {
+      xrt_core::message::
+        send(xrt_core::message::severity_level::XRT_DEBUG, "XRT", "FAILED");
+      return 1;
+    }
     return 0;
   }
 
@@ -804,6 +889,86 @@ done:
 
     return m_locked = true;
   }
+
+  uint32_t get_debug_ip_count()
+  {
+    HANDLE deviceHandle = m_dev;
+    DWORD error = 0; 
+    DWORD bytesWritten;
+    DWORD bytesToRead;
+    XOCL_STAT_CLASS statClass = XoclStatDebugIpLayout;
+    XU_DEBUG_IP_LAYOUT debugIpLayout;
+
+    bytesToRead = sizeof(debugIpLayout);
+
+    if (!DeviceIoControl(deviceHandle,
+                         IOCTL_XOCL_STAT,
+                         &statClass,
+                         sizeof(statClass),
+                         &debugIpLayout,
+                         sizeof(debugIpLayout),
+                         &bytesWritten,
+                         nullptr)) {
+
+      error = GetLastError();
+
+      xrt_core::message::
+        send(xrt_core::message::severity_level::XRT_ERROR, "XRT", "DeviceIoControl failed with error %d while reading Debug IP Layout", error);
+
+      return 0;
+    }    
+    return debugIpLayout.m_count;
+  }
+
+  uint32_t get_debug_ip_data(void* buffer, size_t size, uint32_t numDebugIP)
+  {
+    HANDLE deviceHandle = m_dev;
+    DWORD error = 0; 
+    DWORD bytesWritten;
+    DWORD bytesToRead;
+    XOCL_STAT_CLASS statClass1 = XoclStatDebugIpLayoutData;
+    PXU_DEBUG_IP_DATA  debugIpLayoutData = (PXU_DEBUG_IP_DATA)buffer;
+
+    // need to verify?
+
+//    debugIpLayoutData = new XU_DEBUG_IP_DATA[numDebugIP];
+
+    bytesToRead = sizeof(XU_DEBUG_IP_DATA) * numDebugIP;
+
+    if(bytesToRead != size) {
+      xrt_core::message::
+        send(xrt_core::message::severity_level::XRT_ERROR, "XRT", "Buffer for reading Debug IP Layout is not of desired size", error);
+    }
+
+    if (!DeviceIoControl(deviceHandle,
+                         IOCTL_XOCL_STAT,
+                         &statClass1,
+                         sizeof(statClass1),
+                         debugIpLayoutData,
+                         bytesToRead,
+                         &bytesWritten,
+                         nullptr)) {
+
+      error = GetLastError();
+
+      xrt_core::message::
+        send(xrt_core::message::severity_level::XRT_ERROR, "XRT", "DeviceIoControl failed with error %d while reading Debug IP Layout Data", error);
+
+      goto out;
+    }
+
+    for (size_t i = 0; i < numDebugIP; i++) {
+      printf("\tDebug IP Type=%d, base address =0x%llx, name=%s\n",
+             debugIpLayoutData[i].m_type,
+             debugIpLayoutData[i].m_base_address,
+             debugIpLayoutData[i].m_name);
+    }
+
+  out:
+
+    return error ? 0 : numDebugIP;
+  }
+
 }; // struct shim
 
 shim*
@@ -1038,6 +1203,22 @@ xclGetDeviceInfo2(xclDeviceHandle handle, struct xclDeviceInfo2 *info)
   info->mDataAlignment = 4096; // 4k
 
   return 0;
+}
+
+uint32_t
+xclGetDebugIPCount(xclDeviceHandle handle)
+{
+  xrt_core::message::send(xrt_core::message::severity_level::XRT_DEBUG, "XRT", "xclGetDebugIPCount()");
+  auto shim = get_shim_object(handle);
+  return shim->get_debug_ip_count();
+}
+
+uint32_t
+xclGetDebugIPData(xclDeviceHandle handle, void* buffer, size_t size, uint32_t numDbgIP)
+{
+  xrt_core::message::send(xrt_core::message::severity_level::XRT_DEBUG, "XRT", "xclGetDebugIPData()");
+  auto shim = get_shim_object(handle);
+  return shim->get_debug_ip_data(buffer, size, numDbgIP);
 }
 
 int
