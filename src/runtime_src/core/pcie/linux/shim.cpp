@@ -1445,6 +1445,23 @@ int shim::xclGetDebugIPlayoutPath(char* layoutPath, size_t size)
   return xclGetSysfsPath("icap", "debug_ip_layout", layoutPath, size);
 }
 
+
+int shim::xclGetSubdevPath(const char* subdev, uint idx, char* sysfsPath, size_t size)
+{
+    auto dev = pcidev::get_dev(mBoardNumber);
+    std::string subdev_str = std::string(subdev);
+
+    if (mLogStream.is_open()) {
+      mLogStream << "Retrieving [devfs root]";
+      mLogStream << subdev_str << "/" << idx;
+      mLogStream << std::endl;
+    }
+    std::string sysfsFullPath = dev->get_subdev_path(subdev_str, idx);
+    strncpy(sysfsPath, sysfsFullPath.c_str(), size);
+    sysfsPath[size - 1] = '\0';
+    return 0;
+}
+
 int shim::xclGetTraceBufferInfo(uint32_t nSamples, uint32_t& traceSamples, uint32_t& traceBufSz)
 {
   uint32_t bytesPerSample = (XPAR_AXI_PERF_MON_0_TRACE_WORD_WIDTH / 8);
@@ -2158,4 +2175,13 @@ int xclUpdateSchedulerStat(xclDeviceHandle handle)
 {
   xocl::shim *drv = xocl::shim::handleCheck(handle);
   return (drv) ? drv->xclUpdateSchedulerStat() : -ENODEV;
+}
+
+int xclGetSubdevPath(xclDeviceHandle handle,  const char* subdev,
+                        uint idx, char* sysfsPath, size_t size)
+{
+  xocl::shim *drv = xocl::shim::handleCheck(handle);
+  if (!drv)
+    return -1;
+  return drv->xclGetSubdevPath(subdev, idx, sysfsPath, size);
 }
