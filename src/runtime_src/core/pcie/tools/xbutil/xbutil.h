@@ -899,11 +899,6 @@ public:
         /** End of debug and profile device information */
 
 
-        char layoutPath[512];
-
-        err = xclGetSubdevPath(m_handle,  "accel_mon", 0, layoutPath, 512);
-        std::cout << "HAHA " <<layoutPath << std::endl;
-
         return 0;
     }
 
