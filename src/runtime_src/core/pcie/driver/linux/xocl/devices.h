@@ -202,7 +202,7 @@ enum {
 #define	XOCL_TRACE_FIFO_LITE	"trace_fifo_lite"
 #define	XOCL_TRACE_FIFO_FULL	"trace_fifo_full"
 #define	XOCL_TRACE_FUNNEL	"trace_funnel"
-#define	XOCL_TRACE_S2MM		"TRACE_S2MM"
+#define	XOCL_TRACE_S2MM		"trace_s2mm"
 
 #define	XOCL_DEVNAME(str)	str SUBDEV_SUFFIX
 
