@@ -138,6 +138,12 @@ public:
   std::ostream&
   printDeviceInfo(std::ostream&) const;
 
+  unsigned int
+  HALVersion() const
+  {
+    return m_hal->HALVersion();
+  }
+
   /**
    * Hack to accomodate sw_em missing device info
    */

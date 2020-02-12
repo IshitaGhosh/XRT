@@ -210,6 +210,9 @@ public:
   virtual std::ostream&
   printDeviceInfo(std::ostream&) const = 0;
 
+  virtual unsigned int
+  HALVersion() const = 0;
+
   virtual size_t
   get_cdma_count() const = 0;
 
