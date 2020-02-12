@@ -74,6 +74,13 @@ printDeviceInfo(std::ostream& ostr) const
   return ostr;
 }
 
+unsigned int
+device::
+HALVersion() const
+{
+  return (m_devinfo.mHALMajorVersion << 8) + m_devinfo.mHALMinorVersion;
+}
+
 void
 device::
 setup()

@@ -29,5 +29,4 @@ printDeviceInfo(std::ostream& ostr) const
 {
   return m_hal->printDeviceInfo(ostr);
 }
-
 } // xrt
