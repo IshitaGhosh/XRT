@@ -50,7 +50,6 @@ int XrtDevice::read(xclAddressSpace space, uint64_t offset, void *hostBuf, size_
 int XrtDevice::unmgdRead(unsigned flags, void *buf, size_t count, uint64_t offset)
 {
   mXrtDevice->xclUnmgdPread(flags, buf, count, offset);
-  mXrtDevice->HALVersion();
   return 0;
 }
 

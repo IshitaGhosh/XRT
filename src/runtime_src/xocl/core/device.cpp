@@ -312,6 +312,9 @@ alloc(memory* mem, memidx_type memidx)
   auto boh = m_xdevice->alloc(sz,domain,memidx,nullptr);
   track(mem);
 
+
+  std::cout << m_xdevice->HALVersion() << std::endl;
+
   // Handle unaligned user ptr or bad alloc host_ptr
   if (host_ptr) {
     if (!aligned_flag)
