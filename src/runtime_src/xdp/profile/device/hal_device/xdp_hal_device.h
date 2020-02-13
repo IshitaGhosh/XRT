@@ -43,6 +43,8 @@ public:
   virtual int readTraceData(void* traceBuf, uint32_t traceBufSz, uint32_t numSamples, uint64_t ipBaseAddress, uint32_t& wordsPerSample);
 
   virtual void* getRawDevice() { return mHalDevice ; }
+
+  virtual std::string getSubDevicePath(std::string& subdev, uint64_t index);
 };
 }
 
