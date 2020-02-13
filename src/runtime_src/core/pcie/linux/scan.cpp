@@ -282,7 +282,7 @@ static bool is_admin()
     return (getuid() == 0) || (geteuid() == 0);
 }
 
-int pcidev::pci_device::open(const std::string& subdev, int flag)
+int pcidev::pci_device::open(const std::string& subdev, uint idx, int flag)
 {
     if (is_mgmt && !::is_admin())
         throw std::runtime_error("Root privileges required");
