@@ -21,6 +21,7 @@
 #include "xclfeatures.h"
 #include "core/common/config_reader.h"
 #include "core/common/message.h"
+#include "experimental/xrt-next.h"
 
 #include <windows.h>
 #include <winioctl.h>
@@ -1498,6 +1499,12 @@ size_t xclReadBO(xclDeviceHandle handle, xclBufferHandle boHandle, void *dst, si
         send(xrt_core::message::severity_level::XRT_DEBUG, "XRT", "xclReadBO()");
     auto shim = get_shim_object(handle);
     return shim->read_bo(boHandle, dst, size, skip);
+}
+
+// Not supported yet
+int xclGetSubdevPath(xclDeviceHandle handle, const char* subdev, uint32_t idx, char* sysfsPath, size_t size)
+{
+  return 0;
 }
 
 // Deprecated APIs
