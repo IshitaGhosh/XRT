@@ -73,7 +73,7 @@ int XrtDevice::readTraceData(void* traceBuf, uint32_t traceBufSz, uint32_t numSa
   return mXrtDevice->readTraceData(traceBuf, traceBufSz, numSamples, ipBaseAddress, wordsPerSample).get();
 }
 
-std::string XrtDevice::getSubDevicePath(std::string& subdev, uint64_t index)
+std::string XrtDevice::getSubDevicePath(std::string& subdev, uint32_t index)
 {
   return mXrtDevice->getSubdevPath(subdev, index).get();
 }

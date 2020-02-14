@@ -94,7 +94,7 @@ int HalDevice::readTraceData(void* traceBuf, uint32_t traceBufSz, uint32_t numSa
   return xclReadTraceData(mHalDevice, traceBuf, traceBufSz, numSamples, ipBaseAddress, wordsPerSample);
 }
 
-std::string HalDevice::getSubDevicePath(std::string& subdev, uint64_t index)
+std::string HalDevice::getSubDevicePath(std::string& subdev, uint32_t index)
 {
   constexpr size_t maxSz = 256;
   char buffer[maxSz];
