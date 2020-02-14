@@ -665,7 +665,7 @@ public:
   }
 
   virtual operations_result<std::string>
-  getSubdevPath(const std::string& subdev, uint idx)
+  getSubdevPath(const std::string& subdev, uint32_t idx)
   {
     return operations_result<std::string>();
   }

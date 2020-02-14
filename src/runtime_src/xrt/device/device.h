@@ -876,7 +876,7 @@ public:
   }
 
   hal::operations_result<std::string>
-  getSubdevPath(const std::string& subdev, uint idx)
+  getSubdevPath(const std::string& subdev, uint32_t idx)
   {
     return m_hal->getSubdevPath(subdev, idx);
   }

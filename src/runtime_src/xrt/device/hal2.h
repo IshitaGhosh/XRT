@@ -656,7 +656,7 @@ public:
   }
 
   virtual hal::operations_result<std::string>
-  getSubdevPath(const std::string& subdev, uint idx)
+  getSubdevPath(const std::string& subdev, uint32_t idx)
   {
     if (!m_ops->mGetSubdevPath)
       return hal::operations_result<std::string>();
