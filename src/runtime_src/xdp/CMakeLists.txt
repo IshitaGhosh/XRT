@@ -34,6 +34,7 @@ set(XRT_XDP_PROFILE_DATABASE_DIR       "${CMAKE_CURRENT_SOURCE_DIR}/profile/data
 set(XRT_XDP_PROFILE_EVENTS_DIR         "${CMAKE_CURRENT_SOURCE_DIR}/profile/database/events")
 set(XRT_XDP_PROFILE_DEVICE_DIR         "${CMAKE_CURRENT_SOURCE_DIR}/profile/device")
 set(XRT_XDP_PROFILE_HAL_DEVICE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/profile/device/hal_device")
+set(XRT_XDP_PROFILE_MMAPPED_MON_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/profile/device/mmapped_monitors")
 
 file(GLOB XRT_XDP_APPDEBUG_FILES
   "${XRT_XDP_APPDEBUG_DIR}/*.h"
@@ -101,15 +102,24 @@ file(GLOB XRT_XDP_PROFILE_HAL_INTERFACE_PLUGIN_FILES
   "${XRT_XDP_PROFILE_HAL_API_PLUGIN_DIR}/*.cpp"
   )
 
-set(XRT_XDP_ALL_SRC
-  ${XRT_XDP_PROFILE_FILES}
-  ${XRT_XDP_FILES}
+# XRT_XDP_PROFILE_MMAPPED_MON_DIR added only for Linux Compilation
+file(GLOB XRT_XDP_PROFILE_MMAPPED_MON_FILES
+  "${XRT_XDP_PROFILE_MMAPPED_MON_DIR}/*.h"
+  "${XRT_XDP_PROFILE_MMAPPED_MON_DIR}/*.cpp"
   )
 
 if (NOT WIN32)
 
+# ====== Linux XDP SRC ======
+
+set(XRT_XDP_ALL_SRC
+  ${XRT_XDP_PROFILE_FILES}
+  ${XRT_XDP_PROFILE_MMAPPED_MON_FILES}
+  ${XRT_XDP_FILES}
+  )
+
 # ====== Linux XDP Libraries ======
-add_library(xdp SHARED ${XRT_XDP_ALL_SRC})
+add_library(xdp SHARED ${XRT_XDP_ALL_SRC} )
 add_library(oclxdp SHARED ${XRT_XDP_PROFILE_OCL_PLUGIN_FILES})
 add_library(xdp_hal_plugin SHARED ${XRT_XDP_PROFILE_HAL_PLUGIN_FILES})
 add_library(xdp_hal_api_interface_plugin SHARED ${XRT_XDP_PROFILE_HAL_INTERFACE_PLUGIN_FILES})
@@ -153,6 +163,11 @@ endif()
 
 else()
 # = WINDOWS ===================================================================
+
+set(XRT_XDP_ALL_SRC
+  ${XRT_XDP_PROFILE_FILES}
+  ${XRT_XDP_FILES}
+  )
 
 add_library(xdpobj OBJECT ${XRT_XDP_PROFILE_OCL_PLUGIN_FILES})
 
