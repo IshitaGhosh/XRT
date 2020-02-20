@@ -37,7 +37,7 @@ MMappedTraceFifoLite::MMappedTraceFifoLite(Device* handle, uint64_t index, debug
   }
 
   // mmap opened device driver file
-  mapped_device = (char*)mmap(NULL, PROFILE_IP_SZ, PROT_READ | PROT_WRITE, MAP_SHARED, driver_FD, 0);
+  mapped_device = (char*)mmap(NULL, TRACE_FIFO_LITE_SZ, PROT_READ | PROT_WRITE, MAP_SHARED, driver_FD, 0);
   if(mapped_device == MAP_FAILED) {
     std::cout << " ERROR : Failed to mmap TraceFifoLite " << std::endl;
   }
@@ -45,7 +45,7 @@ MMappedTraceFifoLite::MMappedTraceFifoLite(Device* handle, uint64_t index, debug
 
 MMappedTraceFifoLite::~MMappedTraceFifoLite()
 {
-  munmap(mapped_device, PROFILE_IP_SZ);
+  munmap(mapped_device, TRACE_FIFO_LITE_SZ);
   close(driver_FD);
 }
 
