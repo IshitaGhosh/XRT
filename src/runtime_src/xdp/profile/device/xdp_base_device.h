@@ -21,8 +21,16 @@
 #include<string>
 #include "core/include/xrt.h"
 
+
 namespace xdp {
 
+enum MonitorAccessType
+{
+  EMU = 0,
+  MAPPED_BAR = 513,
+  OPEN_MMAP,
+  OPEN_IOCTL
+};
 
 // interface class
 class Device
@@ -46,6 +54,7 @@ public:
   virtual void* getRawDevice() = 0 ;
 
   virtual std::string getSubDevicePath(std::string& subdev, uint32_t index) = 0;
+  virtual MonitorAccessType getMonitorAccessType() = 0;
 };
 
 }

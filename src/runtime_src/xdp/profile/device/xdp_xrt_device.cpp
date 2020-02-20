@@ -78,5 +78,16 @@ std::string XrtDevice::getSubDevicePath(std::string& subdev, uint32_t index)
   return mXrtDevice->getSubdevPath(subdev, index).get();
 }
 
+MonitorAccessType XrtDevice::getMonitorAccessType()
+{
+  unsigned int version = mXrtDevice->HALVersion();
+  if(version == 514) {
+    return OPEN_MMAP;
+  } else if(version == 515) {
+    return OPEN_IOCTL;
+  }
+  return MAPPED_BAR;
+}
+
 }
 

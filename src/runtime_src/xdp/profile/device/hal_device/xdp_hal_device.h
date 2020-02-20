@@ -45,6 +45,7 @@ public:
   virtual void* getRawDevice() { return mHalDevice ; }
 
   virtual std::string getSubDevicePath(std::string& subdev, uint32_t index);
+  virtual MonitorAccessType getMonitorAccessType();
 };
 }
 

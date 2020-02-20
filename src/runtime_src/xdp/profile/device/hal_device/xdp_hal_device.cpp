@@ -104,5 +104,19 @@ std::string HalDevice::getSubDevicePath(std::string& subdev, uint32_t index)
   return std::string(buffer);
 }
 
+MonitorAccessType HalDevice::getMonitorAccessType()
+{
+  xclDeviceInfo2 devInfo;
+  xclGetDeviceInfo2(mHalDevice, &devInfo);
+
+  unsigned int version = (devInfo.mHALMajorVersion << 8) + devInfo.mHALMinorVersion;
+  if(version == 514) {
+    return OPEN_MMAP;
+  } else if(version == 515) {
+    return OPEN_IOCTL;
+  }
+  return MAPPED_BAR;
+}
+
 }
 

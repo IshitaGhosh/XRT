@@ -48,6 +48,7 @@ public:
   virtual void* getRawDevice() { return mXrtDevice ; }
 
   virtual std::string getSubDevicePath(std::string& subdev, uint32_t index);
+  virtual MonitorAccessType getMonitorAccessType();
 };
 }
 
