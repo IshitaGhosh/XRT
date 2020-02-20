@@ -438,13 +438,13 @@ DeviceIntf::~DeviceIntf()
       } else if(OPEN_MMAP == accessType) {
         for(uint64_t i = 0; i < map->m_count; i++ ) {
           switch(map->m_debug_ip_data[i].m_type) {
-            case AXI_MM_MONITOR :        aimList.push_back(new MMappedAIM(mDevice, i, 0, &(map->m_debug_ip_data[i])));
+            case AXI_MM_MONITOR :        aimList.push_back(new MMappedAIM(mDevice, i, aimList.size(), &(map->m_debug_ip_data[i])));
                                          break;
-            case ACCEL_MONITOR  :        amList.push_back(new MMappedAM(mDevice, i, 0, &(map->m_debug_ip_data[i])));
+            case ACCEL_MONITOR  :        amList.push_back(new MMappedAM(mDevice, i, amList.size(), &(map->m_debug_ip_data[i])));
                                          break;
-            case AXI_STREAM_MONITOR :    asmList.push_back(new MMappedASM(mDevice, i, 0, &(map->m_debug_ip_data[i])));
+            case AXI_STREAM_MONITOR :    asmList.push_back(new MMappedASM(mDevice, i, asmList.size(), &(map->m_debug_ip_data[i])));
                                          break;
-            case AXI_MONITOR_FIFO_LITE : fifoCtrl = new MMappedTraceFifoLite(mDevice, i,0,  &(map->m_debug_ip_data[i]));
+            case AXI_MONITOR_FIFO_LITE : fifoCtrl = new MMappedTraceFifoLite(mDevice, i, 0, &(map->m_debug_ip_data[i]));
                                          break;
             case AXI_MONITOR_FIFO_FULL : fifoRead = new MMappedTraceFifoFull(mDevice, i, 0, &(map->m_debug_ip_data[i]));
                                          break;
