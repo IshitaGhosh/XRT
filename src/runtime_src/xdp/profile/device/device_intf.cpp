@@ -17,6 +17,8 @@
 #define XDP_SOURCE
 
 #include "device_intf.h"
+
+#ifndef _WIN32
 #include "mmapped_monitors/mmapped_aim.h"
 #include "mmapped_monitors/mmapped_am.h"
 #include "mmapped_monitors/mmapped_asm.h"
@@ -24,6 +26,8 @@
 #include "mmapped_monitors/mmapped_traceFifoFull.h"
 #include "mmapped_monitors/mmapped_traceFunnel.h"
 #include "mmapped_monitors/mmapped_traceS2MM.h"
+#endif
+
 #include "xclperf.h"
 #include "xcl_perfmon_parameters.h"
 #include "tracedefs.h"
@@ -435,7 +439,9 @@ DeviceIntf::~DeviceIntf()
             // case AXI_STREAM_PROTOCOL_CHECKER
           }
         }
-      } else if(OPEN_MMAP == accessType) {
+      }
+#ifndef _WIN32
+      else if(OPEN_MMAP == accessType) {
         for(uint64_t i = 0; i < map->m_count; i++ ) {
           switch(map->m_debug_ip_data[i].m_type) {
             case AXI_MM_MONITOR :        aimList.push_back(new MMappedAIM(mDevice, i, aimList.size(), &(map->m_debug_ip_data[i])));
@@ -459,6 +465,7 @@ DeviceIntf::~DeviceIntf()
       } else {
 		// other access types not supported yet
       }
+#endif
     }
 
     ifs.close();

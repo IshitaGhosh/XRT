@@ -15,6 +15,8 @@
  * under the License.
  */
 
+#ifndef _WIN32
+
 #include <sys/fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -63,4 +65,4 @@ int MMappedAM::write(uint64_t offset, size_t size, void* data)
 }
 
 }
-
+#endif
