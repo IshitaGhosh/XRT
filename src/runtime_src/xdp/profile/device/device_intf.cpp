@@ -444,11 +444,11 @@ DeviceIntf::~DeviceIntf()
                                          break;
             case AXI_STREAM_MONITOR :    asmList.push_back(new MMappedASM(mDevice, i, asmList.size(), &(map->m_debug_ip_data[i])));
                                          break;
-            case AXI_MONITOR_FIFO_LITE : fifoCtrl = new MMappedTraceFifoLite(mDevice, i, 0, &(map->m_debug_ip_data[i]));
+            case AXI_MONITOR_FIFO_LITE : fifoCtrl = new MMappedTraceFifoLite(mDevice, i, &(map->m_debug_ip_data[i]));
                                          break;
-            case AXI_MONITOR_FIFO_FULL : fifoRead = new MMappedTraceFifoFull(mDevice, i, 0, &(map->m_debug_ip_data[i]));
+            case AXI_MONITOR_FIFO_FULL : fifoRead = new MMappedTraceFifoFull(mDevice, i, &(map->m_debug_ip_data[i]));
                                          break;
-            case AXI_TRACE_FUNNEL :      traceFunnel = new MMappedTraceFunnel(mDevice, i, 0, &(map->m_debug_ip_data[i]));
+            case AXI_TRACE_FUNNEL :      traceFunnel = new MMappedTraceFunnel(mDevice, i, &(map->m_debug_ip_data[i]));
                                          break;
             case TRACE_S2MM :            traceDMA = new MMappedTraceS2MM(mDevice, i, 0, &(map->m_debug_ip_data[i]));
                                          break;

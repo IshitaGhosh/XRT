@@ -24,13 +24,12 @@
 
 namespace xdp {
 
-MMappedTraceFunnel::MMappedTraceFunnel(Device* handle, uint64_t index, uint64_t instIdx, debug_ip_data* data)
-                  : TraceFunnel(handle, index, data),
-                    instance_index(instIdx)
+MMappedTraceFunnel::MMappedTraceFunnel(Device* handle, uint64_t index, debug_ip_data* data)
+                  : TraceFunnel(handle, index, data)
 {
   // Open TraceFunnel Device Driver File
   std::string subDev("trace_funnel");
-  std::string driverFileName = getDevice()->getSubDevicePath(subDev, instance_index);
+  std::string driverFileName = getDevice()->getSubDevicePath(subDev, 0 /* a design can have atmost 1 TraceFunnel*/);
 
   driver_FD = open(driverFileName.c_str(), O_RDWR);
   if(-1 == driver_FD) {

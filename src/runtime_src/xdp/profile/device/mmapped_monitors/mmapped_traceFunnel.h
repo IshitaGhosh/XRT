@@ -30,7 +30,6 @@ class MMappedTraceFunnel : public TraceFunnel
 public:
   MMappedTraceFunnel(Device*  handle  /* XDP Device Abstraction handle : xrt or HAL device handle */
                     ,uint64_t index   /* Index of the IP in Debug_IP_Layout */
-                    ,uint64_t instIdx /* Instance Index of this Profile IP type */
                     ,debug_ip_data* data = nullptr);
 
   virtual ~MMappedTraceFunnel();
@@ -39,7 +38,6 @@ public:
   virtual int write(uint64_t offset, size_t size, void* data);
 
 protected:
-  uint64_t instance_index;
   int      driver_FD     = -1;
   char*    mapped_device =  0;
 };

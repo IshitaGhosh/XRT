@@ -24,13 +24,12 @@
 
 namespace xdp {
 
-MMappedTraceFifoFull::MMappedTraceFifoFull(Device* handle, uint64_t index, uint64_t instIdx, debug_ip_data* data)
-                    : TraceFifoFull(handle, index, data),
-                      instance_index(instIdx)
+MMappedTraceFifoFull::MMappedTraceFifoFull(Device* handle, uint64_t index, debug_ip_data* data)
+                    : TraceFifoFull(handle, index, data)
 {
   // Open TraceFifoFull Device Driver File
   std::string subDev("trace_fifo_full");
-  std::string driverFileName = getDevice()->getSubDevicePath(subDev, instance_index);
+  std::string driverFileName = getDevice()->getSubDevicePath(subDev, 0 /* a design can have atmost 1 TraceFifoFull*/);
 
   driver_FD = open(driverFileName.c_str(), O_RDWR);
   if(-1 == driver_FD) {
