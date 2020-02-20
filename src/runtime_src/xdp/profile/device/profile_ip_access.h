@@ -27,6 +27,9 @@
 #include "core/include/xclperf.h"
 #include "xdp_base_device.h"
 
+#define PROFILE_IP_SZ 0x1000
+#define TRACE_FIFO_LITE_SZ 0x2000
+
 namespace xdp {
 
 /**
