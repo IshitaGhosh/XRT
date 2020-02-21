@@ -36,13 +36,15 @@ MMappedAM::MMappedAM(Device* handle, uint64_t index, uint64_t instIdx, debug_ip_
 
   driver_FD = open(driverFileName.c_str(), O_RDWR);
   if(-1 == driver_FD) {
-    // error
+    showWarning("Could not open device file.");
+    return;
   }
 
   // mmap opened device driver file
   mapped_device = (char*)mmap(NULL, PROFILE_IP_SZ, PROT_READ | PROT_WRITE, MAP_SHARED, driver_FD, 0);
   if(mapped_device == MAP_FAILED) {
-    std::cout << " ERROR : Failed to mmap AM " << std::endl;
+    showWarning("mmap failed for device file.");
+    return;
   }
 }
 
@@ -52,14 +54,28 @@ MMappedAM::~MMappedAM()
   close(driver_FD);
 }
 
+bool MMappedAM::isMMapped()
+{
+  if(mapped_device == nullptr || mapped_device == MAP_FAILED) {
+    return false;
+  }
+  return true;
+}
+
 int MMappedAM::read(uint64_t offset, size_t size, void* data)
 {
+  if(!isMMapped()) {
+    return 0;
+  }
   memcpy((char*)data, mapped_device + offset, size);
   return size;
 }
 
 int MMappedAM::write(uint64_t offset, size_t size, void* data)
 {
+  if(!isMMapped()) {
+    return 0;
+  }
   memcpy(mapped_device + offset, (char*)data, size);
   return size;
 }

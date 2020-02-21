@@ -37,9 +37,11 @@ public:
   virtual int read(uint64_t offset, size_t size, void* data);
   virtual int write(uint64_t offset, size_t size, void* data);
 
+  virtual bool isMMapped();
+
 protected:
   int      driver_FD     = -1;
-  char*    mapped_device =  0;
+  char*    mapped_device =  nullptr;
 };
 
 }

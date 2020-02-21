@@ -171,7 +171,7 @@ void ProfileIP::showWarning(std::string reason) {
      * do not expect any profiling information.
      */
     std::ostream* outputStream = (out_stream) ? out_stream : (&(std::cout));
-    (*outputStream) << "Error: Cannot use " << ip_name << ". Reason: " << reason << std::endl;
+    (*outputStream) << "Error: Cannot use Profile Monitor IP for " << ip_name << ". Reason: " << reason << std::endl;
     return;
 }
 
