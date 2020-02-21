@@ -29,7 +29,7 @@ enum MonitorAccessType
   EMU = 0,
   MAPPED_BAR = 513,
   OPEN_MMAP,
-  OPEN_IOCTL
+  OPEN_IOCTL    /* Check HAL version when this is implemented */
 };
 
 // interface class

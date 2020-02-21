@@ -83,8 +83,6 @@ MonitorAccessType XrtDevice::getMonitorAccessType()
   unsigned int version = mXrtDevice->HALVersion();
   if(version == 514) {
     return OPEN_MMAP;
-  } else if(version == 515) {
-    return OPEN_IOCTL;
   }
   return MAPPED_BAR;
 }

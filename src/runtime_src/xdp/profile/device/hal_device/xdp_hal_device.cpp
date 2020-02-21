@@ -112,8 +112,6 @@ MonitorAccessType HalDevice::getMonitorAccessType()
   unsigned int version = (devInfo.mHALMajorVersion << 8) + devInfo.mHALMinorVersion;
   if(version == 514) {
     return OPEN_MMAP;
-  } else if(version == 515) {
-    return OPEN_IOCTL;
   }
   return MAPPED_BAR;
 }
