@@ -444,20 +444,75 @@ DeviceIntf::~DeviceIntf()
       else if(OPEN_MMAP == accessType) {
         for(uint64_t i = 0; i < map->m_count; i++ ) {
           switch(map->m_debug_ip_data[i].m_type) {
-            case AXI_MM_MONITOR :        aimList.push_back(new MMappedAIM(mDevice, i, aimList.size(), &(map->m_debug_ip_data[i])));
-                                         break;
-            case ACCEL_MONITOR  :        amList.push_back(new MMappedAM(mDevice, i, amList.size(), &(map->m_debug_ip_data[i])));
-                                         break;
-            case AXI_STREAM_MONITOR :    asmList.push_back(new MMappedASM(mDevice, i, asmList.size(), &(map->m_debug_ip_data[i])));
-                                         break;
-            case AXI_MONITOR_FIFO_LITE : fifoCtrl = new MMappedTraceFifoLite(mDevice, i, &(map->m_debug_ip_data[i]));
-                                         break;
-            case AXI_MONITOR_FIFO_FULL : fifoRead = new MMappedTraceFifoFull(mDevice, i, &(map->m_debug_ip_data[i]));
-                                         break;
-            case AXI_TRACE_FUNNEL :      traceFunnel = new MMappedTraceFunnel(mDevice, i, &(map->m_debug_ip_data[i]));
-                                         break;
-            case TRACE_S2MM :            traceDMA = new MMappedTraceS2MM(mDevice, i, 0, &(map->m_debug_ip_data[i]));
-                                         break;
+            case AXI_MM_MONITOR :
+            {
+              MMappedAIM* pMon = new MMappedAIM(mDevice, i, aimList.size(), &(map->m_debug_ip_data[i]));
+              if(pMon->isMMapped()) {
+                aimList.push_back(pMon);
+              } else {
+                delete pMon;
+                pMon = nullptr;
+              }
+              break;
+            }
+            case ACCEL_MONITOR  :
+            {
+              MMappedAM* pMon = new MMappedAM(mDevice, i, amList.size(), &(map->m_debug_ip_data[i]));
+              if(pMon->isMMapped()) {
+                amList.push_back(pMon);
+              } else {
+                delete pMon;
+                pMon = nullptr;
+              }
+              break;
+            }
+            case AXI_STREAM_MONITOR :
+            {
+              MMappedASM* pMon = new MMappedASM(mDevice, i, asmList.size(), &(map->m_debug_ip_data[i]));
+              if(pMon->isMMapped()) {
+                asmList.push_back(pMon);
+              } else {
+                delete pMon;
+                pMon = nullptr;
+              }
+              break;
+            }
+            case AXI_MONITOR_FIFO_LITE :
+            {
+              fifoCtrl = new MMappedTraceFifoLite(mDevice, i, &(map->m_debug_ip_data[i]));
+              if(!fifoCtrl->isMMapped()) {
+                delete fifoCtrl;
+                fifoCtrl = nullptr;
+              }
+              break;
+            }
+            case AXI_MONITOR_FIFO_FULL :
+            {
+              fifoRead = new MMappedTraceFifoFull(mDevice, i, &(map->m_debug_ip_data[i]));
+              if(!fifoRead->isMMapped()) {
+                delete fifoRead;
+                fifoRead = nullptr;
+              }
+              break;
+            }
+            case AXI_TRACE_FUNNEL :
+            {
+              traceFunnel = new MMappedTraceFunnel(mDevice, i, &(map->m_debug_ip_data[i]));
+              if(!traceFunnel->isMMapped()) {
+                delete traceFunnel;
+                traceFunnel = nullptr;
+              }
+              break;
+            }
+            case TRACE_S2MM :
+            {
+              traceDMA = new MMappedTraceS2MM(mDevice, i, 0, &(map->m_debug_ip_data[i]));
+              if(!traceDMA->isMMapped()) {
+                delete traceDMA;
+                traceDMA = nullptr;
+              }
+              break;
+            }
             default : break;
             // case AXI_STREAM_PROTOCOL_CHECKER
           }
