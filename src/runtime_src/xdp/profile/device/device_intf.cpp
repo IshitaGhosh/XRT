@@ -517,10 +517,12 @@ DeviceIntf::~DeviceIntf()
             // case AXI_STREAM_PROTOCOL_CHECKER
           }
         }
-      } else {
-		// other access types not supported yet
       }
 #endif
+      else {
+		// other access types not supported yet
+      }
+
     }
 
     ifs.close();
