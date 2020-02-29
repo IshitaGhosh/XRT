@@ -46,6 +46,8 @@ XCL_DRIVER_DLLESPEC int xclGetDebugIPlayoutPath(xclDeviceHandle handle, char* la
 XCL_DRIVER_DLLESPEC int xclGetTraceBufferInfo(xclDeviceHandle handle, uint32_t nSamples, uint32_t& traceSamples, uint32_t& traceBufSz);
 XCL_DRIVER_DLLESPEC int xclReadTraceData(xclDeviceHandle handle, void* traceBuf, uint32_t traceBufSz, uint32_t numSamples, uint64_t ipBaseAddress, uint32_t& wordsPerSample);
 
+XCL_DRIVER_DLLESPEC void xclGetDebugIpLayout(xclDeviceHandle hdl, char* buffer, size_t size, size_t* size_ret);
+
 
 
 #ifdef __cplusplus
