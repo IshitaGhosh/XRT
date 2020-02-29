@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016-2019 Xilinx, Inc
+ * Copyright (C) 2016-2020 Xilinx, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may
  * not use this file except in compliance with the License. A copy of the
@@ -20,14 +20,17 @@
  * This is a software model of the kds scheduler.  Primarily
  * for debug and bring up.
  */
-#include "scheduler.h"
-#include "xrt/util/debug.h"
-#include "xrt/util/task.h"
+#define XRT_CORE_COMMON_SOURCE // in same dll as core_common
+
+#include "exec.h"
+#include "command.h"
 #include "ert.h"
 #include "xclbin.h"
+#include "core/common/device.h"
+#include "core/common/debug.h"
+#include "core/common/task.h"
 #include "core/common/thread.h"
 #include "core/common/xclbin_parser.h"
-#include "command.h"
 #include <limits>
 #include <bitset>
 #include <vector>
@@ -35,6 +38,7 @@
 #include <map>
 #include <mutex>
 #include <condition_variable>
+#include <cstring>
 
 #ifdef _WIN32
 # pragma warning( disable : 4996 4458 4267 4244 )
@@ -64,7 +68,7 @@ using idx_type    = uint32_t;
 using size_type   = uint32_t;
 using addr_type   = uint32_t;
 using value_type  = uint32_t;
-using cmd_ptr     = std::shared_ptr<xrt::command>;
+using cmd_ptr     = xrt_core::command*;
 
 ////////////////////////////////////////////////////////////////
 // Constants
@@ -88,7 +92,7 @@ const value_type AP_CONTINUE = 0x10;
 // and notifier.  This allows the scheduler to continue
 // while host callback can be processed in the background
 ////////////////////////////////////////////////////////////////
-static xrt::task::queue notify_queue;
+static xrt_core::task::queue notify_queue;
 static std::thread notifier;
 static bool threaded_notification = true;
 static bool cu_trace_enabled = false;
@@ -137,7 +141,7 @@ public:
   size_type cuidx = no_index;
 
   xocl_cmd(exec_core* ec, cmd_ptr cmd)
-    : m_cmd(cmd), m_ecmd(m_cmd->get_ert_cmd<ert_packet*>()), m_exec(ec), m_state(ERT_CMD_STATE_NEW)
+    : m_cmd(cmd), m_ecmd(m_cmd->get_ert_packet()), m_exec(ec), m_state(ERT_CMD_STATE_NEW)
   {
     static size_type count = 0;
     m_uid = count++;
@@ -180,7 +184,7 @@ public:
       cmd->notify(ERT_CMD_STATE_COMPLETED);
     };
 
-    xrt::task::createF(notify_queue,notify,m_cmd);
+    xrt_core::task::createF(notify_queue,notify,m_cmd);
   }
 
   // Notify of start of cu with idx
@@ -339,8 +343,8 @@ class xocl_cu
 {
 private:
   std::queue<xocl_cmd*> running_queue;
-  xrt::device* xdev = nullptr;
-  size_type idx = 0;
+  xrt_core::device* xdev = nullptr;
+  size_type cuidx = 0;
   addr_type addr = 0;
 
   mutable value_type ctrlreg = 0;
@@ -353,21 +357,21 @@ private:
     XRT_ASSERT(running_queue.size(),"cu wasn't started");
     ctrlreg = 0;
 
-    xdev->read_register(addr,&ctrlreg,4);
-    XRT_DEBUGF("sws cu(%d) poll(0x%x) done(%d) run(%d)\n",idx,ctrlreg,done_cnt,run_cnt);
+    xdev->xread(addr,&ctrlreg,4);
+    XRT_DEBUGF("sws cu(%d) poll(0x%x) done(%d) run(%d)\n",cuidx,ctrlreg,done_cnt,run_cnt);
     if (ctrlreg & (AP_DONE | AP_IDLE))  { // AP_IDLE check in sw emulation
       ++done_cnt;
       --run_cnt;
       XRT_ASSERT(done_cnt <= running_queue.size(),"too many dones");
       // acknowledge done
       value_type cont = AP_CONTINUE;
-      xdev->write_register(addr,&cont,4);
+      xdev->xwrite(addr,&cont,4);
     }
   }
 
 public:
-  xocl_cu(xrt::device* dev, size_type index, addr_type baseaddr)
-    : xdev(dev), idx(index), addr(baseaddr)
+  xocl_cu(xrt_core::device* dev, size_type index, addr_type baseaddr)
+    : xdev(dev), cuidx(index), addr(baseaddr)
   {}
 
   // Check if CU is ready to start another command
@@ -431,27 +435,27 @@ public:
 
     if (xcmd->opcode() == ERT_EXEC_WRITE) {
       // write address value pairs
+      // first 6 entries are reserved in exec write command
       for (size_type idx = 6; idx < size - 1; idx+=2) {
         addr_type offset = *(regmap + idx);
         value_type value = *(regmap + idx + 1);
-        xdev->write_register(addr + offset,&value,4);
+        xdev->xwrite(addr + offset,&value,4);
       }
     }
     else {
       // write register map consecutively from CU base
-      xdev->write_register(addr,regmap,size*4);
+      xdev->xwrite(addr,regmap,size*4);
     }
 
     // invoke callback for starting cu
-    xcmd->notify_start(idx);
+    xcmd->notify_start(cuidx);
 
     // start cu
     ctrlreg |= AP_START;
-    const_cast<uint32_t*>(regmap)[0] = AP_START;
     if (is_emulation())
-      xdev->write_register(addr,regmap,size*4);
+      xdev->xwrite(addr,regmap,size*4);
     else
-      xdev->write_register(addr,regmap,4);
+      xdev->xwrite(addr,regmap,4);
 
     running_queue.push(xcmd);
     ++run_cnt;
@@ -486,7 +490,7 @@ public:
 class exec_core
 {
   // device
-  xrt::device* m_xdev = nullptr;
+  xrt_core::device* m_xdev = nullptr;
 
   // scheduler for this device
   xocl_scheduler* m_scheduler = nullptr;
@@ -503,7 +507,7 @@ class exec_core
   size_type num_cus = 0;
 
 public:
-  exec_core(xrt::device* xdev, xocl_scheduler* xs, size_t slots, const std::vector<addr_type>& cu_amap)
+  exec_core(xrt_core::device* xdev, xocl_scheduler* xs, size_t slots, const std::vector<addr_type>& cu_amap)
     : m_xdev(xdev), m_scheduler(xs), num_slots(slots), num_cus(cu_amap.size())
   {
     cu_usage.reserve(cu_amap.size());
@@ -723,7 +727,11 @@ class xocl_scheduler
 
   // Free a command
   bool
+#ifdef XRT_VERBOSE
   complete_to_free(const xcmd_ptr& xcmd)
+#else
+  complete_to_free(const xcmd_ptr&)
+#endif
   {
     XRT_DEBUGF("xcmd(%d) [complete->free]\n",xcmd->get_uid());
     return true;
@@ -774,7 +782,7 @@ class xocl_scheduler
 
     // Sleep if no new pending commands or no running command have completed
     // throttle polling for cu completion
-    if (auto us = xrt::config::get_polling_throttle())
+    if (auto us = xrt_core::config::get_polling_throttle())
       std::this_thread::sleep_for(std::chrono::microseconds(us));
   }
 
@@ -823,7 +831,7 @@ static std::thread s_scheduler_thread;
 static bool s_running=false;
 
 // Each device has a execution core
-static std::map<const xrt::device*, std::unique_ptr<exec_core>> s_device_exec_core;
+static std::map<const xrt_core::device*, std::unique_ptr<exec_core>> s_device_exec_core;
 
 // Thread routine for scheduler loop
 static void
@@ -834,10 +842,10 @@ scheduler_loop()
 
 } // namespace
 
-namespace xrt { namespace sws {
+namespace xrt_core { namespace sws {
 
 void
-schedule(const cmd_ptr& cmd)
+schedule(xrt_core::command* cmd)
 {
   auto device = cmd->get_device();
 
@@ -859,7 +867,7 @@ start()
 
   s_scheduler_thread = std::move(xrt_core::thread(scheduler_loop));
   if (threaded_notification)
-    notifier = std::move(xrt_core::thread(xrt::task::worker,std::ref(notify_queue)));
+    notifier = std::move(xrt_core::thread(xrt_core::task::worker,std::ref(notify_queue)));
   s_running = true;
 }
 
@@ -886,14 +894,14 @@ stop()
 }
 
 void
-init(xrt::device* xdev, const std::vector<uint64_t>& cu_addr_map)
+init(xrt_core::device* xdev, const std::vector<uint64_t>& cu_addr_map)
 {
   if (!is_sw_emulation())
     throw std::runtime_error("unexpected scheduler initialization call in non sw emulation");
 
   std::vector<addr_type> amap(cu_addr_map.begin(),cu_addr_map.end());
-  auto slots = ERT_CQ_SIZE / xrt::config::get_ert_slotsize();
-  cu_trace_enabled = xrt::config::get_profile();
+  auto slots = ERT_CQ_SIZE / xrt_core::config::get_ert_slotsize();
+  cu_trace_enabled = xrt_core::config::get_profile();
   s_device_exec_core.erase(xdev);
   s_device_exec_core.insert
     (std::make_pair
@@ -901,11 +909,11 @@ init(xrt::device* xdev, const std::vector<uint64_t>& cu_addr_map)
 }
 
 void
-init(xrt::device* xdev, const axlf* top)
+init(xrt_core::device* xdev, const axlf* top)
 {
   // create execution core for this device
-  auto slots = ERT_CQ_SIZE / xrt::config::get_ert_slotsize();
-  cu_trace_enabled = xrt::config::get_profile();
+  auto slots = ERT_CQ_SIZE / xrt_core::config::get_ert_slotsize();
+  cu_trace_enabled = xrt_core::config::get_profile();
   auto cuaddrs = xrt_core::xclbin::get_cus(top);
   std::vector<addr_type> amap(cuaddrs.begin(),cuaddrs.end());
   s_device_exec_core.erase(xdev);
