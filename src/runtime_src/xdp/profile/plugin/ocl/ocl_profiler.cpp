@@ -325,7 +325,8 @@ namespace xdp {
           dInt->clockTraining();
           init_done = offloader->read_trace_init();
           std::cout << " Force read trace " << std::endl;
-          dInt->readTrace();
+          xclTraceResultsVector traceVector;
+          dInt->readTrace(traceVector);
         }
 
         if (init_done) {
