@@ -324,6 +324,8 @@ namespace xdp {
         if (!mTraceThreadEn) {
           dInt->clockTraining();
           init_done = offloader->read_trace_init();
+          std::cout << " Force read trace " << std::endl;
+          dInt->readTrace();
         }
 
         if (init_done) {
