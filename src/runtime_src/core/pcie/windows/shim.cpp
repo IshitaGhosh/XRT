@@ -727,7 +727,7 @@ done:
 
       XOCL_PREAD_PWRITE_UNMGD_ARGS preadBO;
       DWORD  code;
-      DWORD bytesRead;
+      DWORD bytesRead = 0;
 
       if (flags) {  // make compatible with Linux code
           return false;
