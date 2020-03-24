@@ -1457,9 +1457,10 @@ xclGetDeviceInfo2(xclDeviceHandle handle, struct xclDeviceInfo2 *info)
   info->mMinTransferSize = 0;
   info->mDMAThreads = 2;
   info->mDataAlignment = 4096; // 4k
-  auto udev = xrt_core::get_userpf_device(handle);
-  auto vbnv = xrt_core::device_query<xrt_core::query::rom_vbnv>(udev);
-  std::memcpy(info->mName, vbnv.c_str(), vbnv.size());
+  //auto udev = xrt_core::get_userpf_device(handle);
+  //auto vbnv = xrt_core::device_query<xrt_core::query::rom_vbnv>(udev);
+  //std::memcpy(info->mName, vbnv.c_str(), vbnv.size());
+  std::memcpy(info->mName, "xilinx_u250", 12);
 
   return 0;
 }
