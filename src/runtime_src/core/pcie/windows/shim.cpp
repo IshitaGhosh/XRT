@@ -24,6 +24,7 @@
 #include "core/common/system.h"
 #include "core/common/device.h"
 #include "core/common/AlignedAllocator.h"
+#include "core/common/query_requests.h"
 #include "core/include/xcl_perfmon_parameters.h"
 
 #include <windows.h>
@@ -1455,6 +1456,9 @@ xclGetDeviceInfo2(xclDeviceHandle handle, struct xclDeviceInfo2 *info)
   info->mMinTransferSize = 0;
   info->mDMAThreads = 2;
   info->mDataAlignment = 4096; // 4k
+  auto udev = xrt_core::get_userpf_device(handle);
+  auto vbnv = xrt_core::device_query<xrt_core::query::rom_vbnv>(udev);
+  std::memcpy(info->mName, vbnv.c_str(), vbnv.size());
 
   return 0;
 }
