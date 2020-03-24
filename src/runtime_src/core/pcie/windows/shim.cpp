@@ -1579,6 +1579,15 @@ xclReadTraceData(xclDeviceHandle handle, void* traceBuf, uint32_t traceBufSz,
   uint32_t chunkSizeBytes = 4 * chunkSizeWords;
   uint32_t words=0;
 
+std::cout << " Check hostbuf initialization " << std::endl;
+*(hostbuf +1) = 23;
+uint32_t *tmp = hostbuf;
+for(uint32_t i = 0 ; i < traceBufSz ; i = i +4) {
+  std::cout << " " << *tmp << " " ;
+  tmp++;
+}
+
+
   // Read trace a chunk of bytes at a time
   if (numWords > chunkSizeWords) {
     for (; words < (numWords-chunkSizeWords); words += chunkSizeWords) {
@@ -1610,6 +1619,13 @@ xclReadTraceData(xclDeviceHandle handle, void* traceBuf, uint32_t traceBufSz,
     if(mLogStream.is_open())
         mLogStream << __func__ << ": done reading " << size << " bytes " << std::endl;
 #endif
+std::cout << " Check hostbuf after read " << std::endl;
+tmp = hostbuf;
+for(uint32_t i = 0 ; i < traceBufSz ; i = i +4) {
+  std::cout << " " << *tmp << " " ;
+  tmp++;
+}
+
   memcpy((char*)traceBuf, (char*)hostbuf, traceBufSz);
 
   return size;
