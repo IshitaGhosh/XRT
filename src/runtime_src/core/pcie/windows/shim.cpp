@@ -739,6 +739,7 @@ done:
       preadBO.size = size;
       preadBO.data_ptr = (uint64_t)buf;
 
+std::cout << " In shim::unmgd_pread : before read bytesRead " << bytesRead << " buf " << *((uint32_t*)buf) << std::endl;
 
       if (!DeviceIoControl(m_dev,
           IOCTL_XOCL_PREAD_UNMGD,
@@ -754,7 +755,7 @@ done:
               send(xrt_core::message::severity_level::XRT_ERROR, "XRT", "DeviceIoControl PREAD unmanaged failed with error %d", code);
           return false;
       }
-
+std::cout << " In shim::unmgd_pread : bytesRead " << bytesRead << " buf " << *((uint32_t*)buf) << std::endl;
       return true;
   }
 
@@ -1613,8 +1614,9 @@ for(uint32_t i = 0 ; i < 200 ; i = i +4) {
       }
 #endif
     std::cout << " chunkSizeBytes " << chunkSizeBytes << " words " << words << " numWords" << numWords <<std::endl;
-    for(uint32_t j =  0; j < chunkSizeBytes ; j=j+4) {
-    shim->unmgd_pread(0 /*flags*/, (void *)(hostbuf + words + j) /*buf*/, 4 /* chunkSizeBytes *//*count*/, ipBaseAddress + AXI_FIFO_RDFD_AXI_FULL /*offset : or AXI_FIFO_RDFD*/);
+    for(uint32_t j =  0, k = 0; j < chunkSizeBytes ; j=j+4) {
+    shim->unmgd_pread(0 /*flags*/, (void *)(hostbuf + words + k) /*buf*/, 4 /* chunkSizeBytes *//*count*/, ipBaseAddress + AXI_FIFO_RDFD_AXI_FULL /*offset : or AXI_FIFO_RDFD*/);
+    k++;
     } 
     size += chunkSizeBytes;
   }
