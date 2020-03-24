@@ -1582,7 +1582,7 @@ xclReadTraceData(xclDeviceHandle handle, void* traceBuf, uint32_t traceBufSz,
 std::cout << " Check hostbuf initialization " << std::endl;
 *(hostbuf +1) = 23;
 uint32_t *tmp = hostbuf;
-for(uint32_t i = 0 ; i < traceBufSz ; i = i +4) {
+for(uint32_t i = 0 ; i < 200 ; i = i +4) {
   std::cout << " " << *tmp << " " ;
   tmp++;
 }
@@ -1612,7 +1612,10 @@ for(uint32_t i = 0 ; i < traceBufSz ; i = i +4) {
                       << (void *)(hostbuf + words) << std::dec << std::endl;
       }
 #endif
-    shim->unmgd_pread(0 /*flags*/, (void *)(hostbuf + words) /*buf*/, chunkSizeBytes /*count*/, ipBaseAddress + AXI_FIFO_RDFD_AXI_FULL /*offset : or AXI_FIFO_RDFD*/);
+    std::cout << " chunkSizeBytes " << chunkSizeBytes << " words " << words << " numWords" << numWords <<std::endl;
+    for(uint32_t j =  0; j < chunkSizeBytes ; j=j+4) {
+    shim->unmgd_pread(0 /*flags*/, (void *)(hostbuf + words + j) /*buf*/, 4 /* chunkSizeBytes *//*count*/, ipBaseAddress + AXI_FIFO_RDFD_AXI_FULL /*offset : or AXI_FIFO_RDFD*/);
+    } 
     size += chunkSizeBytes;
   }
 #if 0
@@ -1621,7 +1624,7 @@ for(uint32_t i = 0 ; i < traceBufSz ; i = i +4) {
 #endif
 std::cout << " Check hostbuf after read " << std::endl;
 tmp = hostbuf;
-for(uint32_t i = 0 ; i < traceBufSz ; i = i +4) {
+for(uint32_t i = 0 ; i < 200 ; i = i +4) {
   std::cout << " " << *tmp << " " ;
   tmp++;
 }
