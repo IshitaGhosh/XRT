@@ -739,7 +739,9 @@ done:
       preadBO.size = size;
       preadBO.data_ptr = (uint64_t)buf;
 
-std::cout << " In shim::unmgd_pread : before read bytesRead " << bytesRead << " buf " << *((uint32_t*)buf) << std::endl;
+uint32_t myTmp = *((uint32_t*)buf);
+std::cout << " In shim::unmgd_pread : before read bytesRead " << bytesRead << " buf " << myTmp << std::endl;
+
 
       if (!DeviceIoControl(m_dev,
           IOCTL_XOCL_PREAD_UNMGD,
@@ -755,6 +757,7 @@ std::cout << " In shim::unmgd_pread : before read bytesRead " << bytesRead << " 
               send(xrt_core::message::severity_level::XRT_ERROR, "XRT", "DeviceIoControl PREAD unmanaged failed with error %d", code);
           return false;
       }
+      myTmp = *((uint32_t*)buf);
 std::cout << " In shim::unmgd_pread : bytesRead " << bytesRead << " buf " << *((uint32_t*)buf) << std::endl;
       return true;
   }
