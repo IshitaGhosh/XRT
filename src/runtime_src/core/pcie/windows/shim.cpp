@@ -1619,7 +1619,7 @@ for(uint32_t i = 0 ; i < 200 ; i = i +4) {
 #endif
     std::cout << " chunkSizeBytes " << chunkSizeBytes << " words " << words << " numWords" << numWords <<std::endl;
     for(uint32_t j =  0, k = 0; j < chunkSizeBytes ; j=j+4) {
-    shim->unmgd_pread(0 /*flags*/, (void *)(hostbuf + words + k) /*buf*/, 4 /* chunkSizeBytes *//*count*/, ipBaseAddress + AXI_FIFO_RDFD_AXI_FULL + k /*offset : or AXI_FIFO_RDFD*/);
+    shim->unmgd_pread(0 /*flags*/, (void *)(hostbuf + words + k) /*buf*/, 4 /* chunkSizeBytes *//*count*/, ipBaseAddress + AXI_FIFO_RDFD_AXI_FULL + j /*offset : or AXI_FIFO_RDFD*/);
     k++;
     } 
     size += chunkSizeBytes;
