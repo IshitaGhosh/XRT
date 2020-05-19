@@ -711,6 +711,10 @@ static int icap_ocl_update_clock_freq_topology(struct platform_device *pdev,
 
 	err = ulp_clock_update(icap, freq_obj->ocl_target_freq,
 		ARRAY_SIZE(freq_obj->ocl_target_freq), 1);
+	if (err)
+		goto done;
+
+	err = icap_calibrate_mig(pdev);
 done:
 	mutex_unlock(&icap->icap_lock);
 	icap_xclbin_rd_unlock(icap);
@@ -3041,6 +3045,7 @@ static struct xocl_icap_funcs icap_ops = {
 	.get_xclbin_metadata = icap_get_xclbin_metadata,
 	.put_xclbin_metadata = icap_put_xclbin_metadata,
 	.mig_calibration = icap_calibrate_mig,
+	.clean_bitstream = icap_clean_bitstream_axlf,
 };
 
 static ssize_t clock_freqs_show(struct device *dev,

@@ -92,17 +92,14 @@ static int str2index(const char *arg, unsigned& index)
 static bool
 check_os_release(const std::vector<std::string> kernel_versions, std::ostream &ostr)
 {
-    bool ret = false;
     const std::string release = sensor_tree::get<std::string>("system.release");
     for (const auto& ver : kernel_versions) {
-        if (release.find(ver) != std::string::npos) {
-            ret = true;
-            break;
-        }
+        if (release.find(ver) != std::string::npos)
+            return true;
     }
-    ostr << "ERROR: Kernel verison " << release << " is not supported. " 
+    ostr << "WARNING: Kernel verison " << release << " is not officially supported. " 
         << kernel_versions.back() << " is the latest supported version" << std::endl;
-    return ret;
+    return false;
 }
 
 static bool
@@ -1396,7 +1393,7 @@ int xcldev::device::kernelVersionTest(void)
         return -EOPNOTSUPP;
     }
     if (!is_supported_kernel_version(std::cout)) {
-        return  -ENODEV;
+        return  1;
     }
     return 0;
 }
@@ -1995,7 +1992,7 @@ int xcldev::xclCma(int argc, char *argv[])
         std::cout << "ERROR: Does not support HOST MEM feature"
             << std::endl; 
     } else if (ret == -EBUSY) {
-        std::cout << "ERROR: HOST MEM already enabled"
+        std::cout << "ERROR: HOST MEM already enabled or in-use"
             << std::endl;
     } else if (!ret) {
         std::cout << "xbutil host_mem done successfully" << std::endl;

@@ -846,6 +846,8 @@ struct xocl_dna_funcs {
 	(ADDR_TRANSLATOR_CB(xdev, disable_remap) ? ADDR_TRANSLATOR_OPS(xdev)->disable_remap(ADDR_TRANSLATOR_DEV(xdev)) : -ENODEV)
 #define	xocl_addr_translator_clean(xdev)			\
 	(ADDR_TRANSLATOR_CB(xdev, clean) ? ADDR_TRANSLATOR_OPS(xdev)->clean(ADDR_TRANSLATOR_DEV(xdev)) : -ENODEV)
+#define	xocl_addr_translator_get_base_addr(xdev)			\
+	(ADDR_TRANSLATOR_CB(xdev, get_base_addr) ? ADDR_TRANSLATOR_OPS(xdev)->get_base_addr(ADDR_TRANSLATOR_DEV(xdev)) : 0)
 
 struct xocl_addr_translator_funcs {
 	struct xocl_subdev_funcs common_funcs;
@@ -855,6 +857,7 @@ struct xocl_addr_translator_funcs {
 	int (*enable_remap)(struct platform_device *pdev, uint64_t base_addr);
 	int (*disable_remap)(struct platform_device *pdev);
 	int (*clean)(struct platform_device *pdev);
+	u64 (*get_base_addr)(struct platform_device *pdev);
 };
 
 /**
@@ -1097,6 +1100,7 @@ struct xocl_icap_funcs {
 		enum data_kind kind, void **buf);
 	void (*put_xclbin_metadata)(struct platform_device *pdev);
 	int (*mig_calibration)(struct platform_device *pdev);
+	void (*clean_bitstream)(struct platform_device *pdev);
 };
 enum {
 	RP_DOWNLOAD_NORMAL,
@@ -1167,6 +1171,10 @@ enum {
 #define	xocl_icap_mig_calibration(xdev)				\
 	(ICAP_CB(xdev, mig_calibration) ?			\
 	ICAP_OPS(xdev)->mig_calibration(ICAP_DEV(xdev)) : 	\
+	-ENODEV)
+#define	xocl_icap_clean_bitstream(xdev)				\
+	(ICAP_CB(xdev, clean_bitstream) ?			\
+	ICAP_OPS(xdev)->clean_bitstream(ICAP_DEV(xdev)) : 	\
 	-ENODEV)
 
 #define XOCL_GET_MEM_TOPOLOGY(xdev, mem_topo)						\
@@ -1518,6 +1526,7 @@ enum {
 	XOCL_MSG_SUBDEV_RTN_UNCHANGED = 1,
 	XOCL_MSG_SUBDEV_RTN_PARTIAL,
 	XOCL_MSG_SUBDEV_RTN_COMPLETE,
+	XOCL_MSG_SUBDEV_RTN_PENDINGPLP,
 };
 
 /* subdev functions */
@@ -1546,7 +1555,8 @@ int xocl_subdev_destroy_by_name(xdev_handle_t xdev_hdl, char *name);
 int xocl_subdev_destroy_prp(xdev_handle_t xdev);
 int xocl_subdev_create_prp(xdev_handle_t xdev);
 
-int xocl_subdev_vsec(xdev_handle_t xdev, u32 type, int *bar_idx, u64 *offset);
+int xocl_subdev_vsec(xdev_handle_t xdev, u32 type, int *bar_idx, u64 *offset,
+	u32 *verType);
 u32 xocl_subdev_vsec_read32(xdev_handle_t xdev, int bar, u64 offset);
 int xocl_subdev_create_vsec_devs(xdev_handle_t xdev);
 bool xocl_subdev_is_vsec(xdev_handle_t xdev);
@@ -1648,6 +1658,11 @@ int xocl_fdt_parse_blob(xdev_handle_t xdev_hdl, char *blob, u32 blob_sz,
 const struct axlf_section_header *xocl_axlf_section_header(
 	xdev_handle_t xdev_hdl, const struct axlf *top,
 	enum axlf_section_kind kind);
+int xocl_fdt_path_offset(xdev_handle_t xdev_hdl, void *blob, const char *path);
+int xocl_fdt_setprop(xdev_handle_t xdev_hdl, void *blob, int off,
+		     const char *name, const void *val, int size);
+const void *xocl_fdt_getprop(xdev_handle_t xdev_hdl, void *blob, int off,
+			     char *name, int *lenp);
 
 
 /* init functions */

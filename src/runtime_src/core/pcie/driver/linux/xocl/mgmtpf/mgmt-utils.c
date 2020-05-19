@@ -162,12 +162,22 @@ static int xocl_match_slot_and_wait(struct device *dev, void *data)
 {
 	struct xclmgmt_dev *lro = data;
 	struct pci_dev *pdev;
+	int userpf= -1;
 	int ret = 0;
 
 	pdev = to_pci_dev(dev);
 
+	if (lro->core.fdt_blob) {
+		userpf = xocl_fdt_get_userpf(lro, lro->core.fdt_blob);
+		if (userpf < 0) {
+			mgmt_err(lro, "can not find userpf");
+			return -EINVAL;
+		}
+	}
+
 	if (pdev != lro->core.pdev &&
-		(XOCL_DEV_ID(pdev) >> 3) == (XOCL_DEV_ID(lro->pci_dev) >> 3))
+		(XOCL_DEV_ID(pdev) >> 3) == (XOCL_DEV_ID(lro->pci_dev) >> 3) &&
+		(userpf < 0 || PCI_FUNC(pdev->devfn) == userpf))
 		ret = xocl_wait_pci_status(pdev, PCI_COMMAND_MASTER, 0, 60);
 
 	return ret;
@@ -183,12 +193,22 @@ static int xocl_match_slot_set_master(struct device *dev, void *data)
 	struct xclmgmt_dev *lro = data;
 	struct pci_dev *pdev;
 	u16 pci_cmd;
+	int userpf = -1;
 	int ret = 0;
 
 	pdev = to_pci_dev(dev);
 
+	if (lro->core.fdt_blob) {
+		userpf = xocl_fdt_get_userpf(lro, lro->core.fdt_blob);
+		if (userpf < 0) {
+			mgmt_err(lro, "can not find userpf");
+			return -EINVAL;
+		}
+	}
+
 	if (pdev != lro->core.pdev &&
-		(XOCL_DEV_ID(pdev) >> 3) == (XOCL_DEV_ID(lro->pci_dev) >> 3)) {
+		(XOCL_DEV_ID(pdev) >> 3) == (XOCL_DEV_ID(lro->pci_dev) >> 3) &&
+		(userpf < 0 || PCI_FUNC(pdev->devfn) == userpf)) {
 		pci_read_config_word(pdev, PCI_COMMAND, &pci_cmd);
 		if (!(pci_cmd & PCI_COMMAND_MASTER)) {
 			pci_cmd |= PCI_COMMAND_MASTER;
@@ -487,6 +507,8 @@ int xclmgmt_update_userpf_blob(struct xclmgmt_dev *lro)
 	int len, userpf_idx;
 	int ret;
 	struct FeatureRomHeader	rom_header;
+	int offset;
+	const int *version;
 
 	if (!lro->core.fdt_blob)
 		return 0;
@@ -531,6 +553,24 @@ int xclmgmt_update_userpf_blob(struct xclmgmt_dev *lro)
 		mgmt_err(lro, "add vrom failed %d", ret);
 		goto failed;
 	}
+
+	/* Get ERT firmware major version from mgmtpf blob */
+	offset = xocl_fdt_path_offset(lro, lro->core.fdt_blob,
+					"/" NODE_ENDPOINTS "/" NODE_ERT_FW_MEM
+					"/" NODE_FIRMWARE);
+	if (offset < 0) {
+		mgmt_err(lro, "get ert firmware node failed %d", offset);
+	}
+	version = xocl_fdt_getprop(lro, lro->core.fdt_blob, offset, PROP_VERSION_MAJOR, NULL);
+
+	/* Add ERT firmware major version to userpf blob */
+	offset = xocl_fdt_path_offset(lro, lro->userpf_blob,
+					"/" NODE_ENDPOINTS "/" NODE_ERT_SCHED);
+	if (offset < 0) {
+		mgmt_err(lro, "get ert sched node failed %d", offset);
+	}
+	(void) xocl_fdt_setprop(lro, lro->userpf_blob, offset, PROP_VERSION_MAJOR,
+				version, sizeof(int));
 
 	fdt_pack(lro->userpf_blob);
 	lro->userpf_blob_updated = true;
@@ -634,7 +674,8 @@ static bool xocl_subdev_vsec_is_golden(xdev_handle_t xdev_hdl)
 	int bar;
 	u64 offset;
 
-	if (xocl_subdev_vsec(xdev_hdl, XOCL_VSEC_PLATFORM_INFO, &bar, &offset))
+	if (xocl_subdev_vsec(xdev_hdl, XOCL_VSEC_PLATFORM_INFO, &bar, &offset,
+		NULL))
 		return false;
 
 	return xocl_subdev_vsec_read32(xdev_hdl, bar, offset) ==
