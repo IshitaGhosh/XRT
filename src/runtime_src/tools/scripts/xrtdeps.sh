@@ -2,6 +2,7 @@
 
 FLAVOR=`grep '^ID=' /etc/os-release | awk -F= '{print $2}' | tr -d '"'`
 VERSION=`grep '^VERSION_ID=' /etc/os-release | awk -F= '{print $2}' | tr -d '"'`
+MAJOR=${VERSION%.*}
 ARCH=`uname -m`
 
 usage()
@@ -88,18 +89,25 @@ rh_package_list()
      unzip \
      zlib-static \
      libcurl-devel \
-     openssl-devel \
     )
 
     # Centos8
-    if [ $VERSION == 8 ]; then
+    if [ $MAJOR == 8 ]; then
 
         RH_LIST+=(\
          systemd-devel \
          python3 \
          python3-pip \
-         systemd-devel \
         )
+
+	if [ $FLAVOR == "rhel" ]; then
+  
+            RH_LIST+=(\
+             kernel-devel-$(uname -r) \
+             kernel-headers-$(uname -r) \
+            )
+  
+        fi
 
     else
 
@@ -244,8 +252,29 @@ prep_centos7()
 
 prep_rhel7()
 {
+    echo "Enabling EPEL repository..."
+    rpm -q --quiet epel-release
+    if [ $? != 0 ]; then
+    	 yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+	 yum check-update
+    fi
+    
     echo "Enabling RHEL SCL repository..."
     yum-config-manager --enable rhel-server-rhscl-7-rpms
+    
+}
+
+prep_rhel8()
+{
+    echo "Enabling EPEL repository..."
+    rpm -q --quiet epel-release
+    if [ $? != 0 ]; then
+    	 yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+	 yum check-update
+    fi
+    
+    echo "Enabling CodeReady-Builder repository..."
+    subscription-manager repos --enable "codeready-builder-for-rhel-8-x86_64-rpms"
 }
 
 prep_centos8()
@@ -263,7 +292,7 @@ prep_centos()
     echo "Installing cmake3 from EPEL repository..."
     yum install -y cmake3
 
-    if [ $VERSION == 8 ]; then
+    if [ $MAJOR == 8 ]; then
         prep_centos8
     else
         prep_centos7
@@ -272,19 +301,14 @@ prep_centos()
 
 prep_rhel()
 {
-    echo "Enabling EPEL repository..."
-    rpm -q --quiet epel-release
-    if [ $? != 0 ]; then
-	yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-	yum check-update
-    fi
-
-    if [ $VERSION == 8 ]; then
-        echo "RHEL8 not implemented yet"
-        exit 1;
+   if [ $MAJOR == 8 ]; then
+        prep_rhel8
     else
         prep_rhel7
     fi
+    
+    echo "Installing cmake3 from EPEL repository..."
+    yum install -y cmake3
 }
 
 install()
@@ -308,7 +332,7 @@ install()
         yum install -y "${RH_LIST[@]}"
 	if [ $ARCH == "ppc64le" ]; then
             yum install -y devtoolset-7
-	elif [ $VERSION -lt "8" ]; then
+	elif [ $MAJOR -lt "8" ]; then
             yum install -y devtoolset-6
 	fi
     fi

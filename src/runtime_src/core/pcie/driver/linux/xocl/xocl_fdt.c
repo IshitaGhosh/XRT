@@ -416,12 +416,16 @@ static struct xocl_subdev_map		subdev_map[] = {
 		0,
 		NULL,
 		devinfo_cb_setlevel,
+		.min_level = XOCL_SUBDEV_LEVEL_PRP,
 	},
 	{
 		XOCL_SUBDEV_IORES,
 		XOCL_IORES1,
 		{
 			RESNAME_PCIEMON,
+			RESNAME_MEMCALIB,
+			RESNAME_KDMA,
+			RESNAME_DDR4_RESET_GATE,
 			NULL
 		},
 		1,
@@ -676,6 +680,10 @@ static int xocl_fdt_parse_ip(xdev_handle_t xdev_hdl, char *blob,
 #if PF == MGMTPF
 	/* mgmtpf driver checks pfnum. it will not create userpf subdevices */
 	if (ntohl(*pfnum) != XOCL_PCI_FUNC(xdev_hdl))
+		return 0;
+#else 
+	if (XDEV(xdev_hdl)->fdt_blob && 
+		xocl_fdt_get_userpf(xdev_hdl, XDEV(xdev_hdl)->fdt_blob) != ntohl(*pfnum))
 		return 0;
 #endif
 
