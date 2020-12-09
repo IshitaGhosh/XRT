@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016-2017 Xilinx, Inc
+ * Copyright (C) 2016-2020 Xilinx, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may
  * not use this file except in compliance with the License. A copy of the
@@ -20,12 +20,15 @@
 
 #include "xrt/config.h"
 #include "xrt/util/task.h"
-#include "xrt/util/memory.h"
 
 #include "xocl/api/plugin/xdp/profile.h"
 
 #include <iostream>
 #include <cassert>
+
+#ifdef _WIN32
+#pragma warning ( disable : 4189 4505 )
+#endif
 
 namespace {
 
@@ -263,7 +266,7 @@ add_callback(callback_function_type fcn)
     std::lock_guard<std::mutex> lk(m_mutex);
     if ((complete=(m_status==CL_COMPLETE))==false) {
       if (!m_callbacks)
-        m_callbacks = xrt::make_unique<callback_list>();
+        m_callbacks = std::make_unique<callback_list>();
       m_callbacks->emplace_back(std::move(fcn));
     }
   }
@@ -332,9 +335,8 @@ chain(event* ev)
 
 bool
 event::
-chains(const event* ev) const
+chains_nolock(const event* ev) const
 {
-  std::lock_guard<std::mutex> lk(m_mutex);
   return std::find(m_chain.begin(),m_chain.end(),ev)!=m_chain.end();
 }
 
@@ -342,7 +344,7 @@ bool
 event::
 waits_on(const event* ev) const
 {
-  return ev->chains(this);
+  return ev->chains_nolock(this);
 }
 
 bool
@@ -423,7 +425,7 @@ create_event(command_queue* cq, context* ctx, cl_command_type cmd, cl_uint num_d
   using edpw_event = event_with_debugging<epw_event>; // debug event with profiling and waitlist
 
   assert(!cq || cq->get_context()==ctx);
-  static bool app_debug = xrt::config::get_app_debug();
+  static bool app_debug = xrt_xocl::config::get_app_debug();
 
   ptr<event> retval;
 

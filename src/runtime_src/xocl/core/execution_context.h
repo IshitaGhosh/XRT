@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016-2017 Xilinx, Inc
+ * Copyright (C) 2016-2020 Xilinx, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may
  * not use this file except in compliance with the License. A copy of the
@@ -40,23 +40,22 @@ class event;
  * is deleted when the xocl::event destructs.
  *
  * The execution context executes a kernel event by sending
- * xrt::command objects to the xrt::scheduler.  The scheduler
+ * xrt_xocl::command objects to the xrt_xocl::scheduler.  The scheduler
  * itself can be running in either software or hardware.
  *
  * When a command is constructed all registered construction callbacks
  * are invoked.  When the command completes, all registered completion
  * callbacks are called before the command itself is deleted.
- * 
+ *
  * Command ownership is managed by execution context.
  */
 class execution_context
 {
   struct start_kernel;
-  struct start_kernel_conformance;
 
 public:
-  using command_type = std::shared_ptr<xrt::command>;
-  using packet_type = xrt::command::packet_type;
+  using command_type = std::shared_ptr<xrt_xocl::command>;
+  using packet_type = xrt_xocl::command::packet_type;
   using regmap_type = packet_type;
   using word_type = packet_type::word_type;
 
@@ -93,15 +92,17 @@ private:
   using argument_iterator_type = argument_vector_type::const_iterator;
   argument_vector_type m_kernel_args;
 
+  bool m_dataflow = false;
+
   // The context maintains a list of kernel compute units represented
   // by xcl::cu.  These cus (their base addresses) are used in the command
-  // that starts the mbs. 
+  // that starts the mbs.
   std::vector<const compute_unit*> m_cus;
 
   // Number of active start_kernel commands in this context
   size_t m_active = 0;
 
-  // Flag to indicate the execution context has no more work 
+  // Flag to indicate the execution context has no more work
   // to be scheduled
   bool m_done = false;
 
@@ -120,6 +121,25 @@ private:
   encode_compute_units(packet_type& pkt);
 
   /**
+   * Control type, IP_CONTROL per xclbin ip_layout
+   */
+  uint32_t
+  cu_control_type() const;
+
+  /**
+   * Fill the Fast Adapter descriptor when 
+   * kernel control type is FAST_ADAPTER
+   */
+  size_t
+  fill_fa_desc(void* data);
+
+  /**
+   * Opcode for command object
+   */
+  ert_cmd_opcode
+  get_opcode() const;
+
+  /**
    * Update workgroup accounting.
    */
   void
@@ -136,7 +156,7 @@ private:
    *   be used.
    */
   bool
-  done(const xrt::command* cmd);
+  done(const xrt_xocl::command* cmd);
 
 public:
   /**
@@ -163,15 +183,15 @@ public:
   }
 
   const size_t*
-  get_global_work_size() const 
+  get_global_work_size() const
   { return m_gsize.data(); }
 
   size_t
-  get_global_work_size(unsigned int d) const 
+  get_global_work_size(unsigned int d) const
   { return m_gsize[d]; }
 
   const size_t*
-  get_local_work_size() const 
+  get_local_work_size() const
   { return m_lsize.data(); }
 
   size_t
@@ -189,12 +209,6 @@ public:
   get_indexed_argument_range() const
   {
     return m_kernel->get_indexed_argument_range();
-  }
-
-  xocl::range<argument_iterator_type>
-  get_progvar_argument_range() const
-  {
-    return m_kernel->get_progvar_argument_range();
   }
 
   /**
@@ -230,6 +244,7 @@ public:
    *   Pointer to compute unit object that maps to cu_idx, nullptr
    *   if no mapping
    */
+  XRT_XOCL_EXPORT
   const compute_unit*
   get_compute_unit(unsigned int cu_idx) const;
 
@@ -240,41 +255,35 @@ public:
    * soon as an event changes state to CL_SUBMITTED.
    *
    * The context creates scheduler commands and submits
-   * these commands to the command queue. 
+   * these commands to the command queue.
    *
    * @return
    *    true if last work group was started, false otherwise
    */
   bool
   execute();
-
-private:
-  // Call back for start_kernel_conformance comands
-  bool
-  conformance_done(const xrt::command* cmd);
-
-  // Execute a context in conformance mode
-  bool
-  conformance_execute();
 };
 
 /**
  * Callback function type for kernel command callbacks
  */
-using command_callback_function_type = std::function<void(const xrt::command*,const execution_context*)>;
+using command_callback_function_type = std::function<void(const xrt_xocl::command*,const execution_context*)>;
 
 /**
  * Register function to invoke when a kernel command is constructed
  */
-void add_command_start_callback(command_callback_function_type fcn);
+XRT_XOCL_EXPORT
+void
+add_command_start_callback(command_callback_function_type fcn);
 
 /**
  * Register function to invoke when a kernel command completes
  */
-void add_command_done_callback(command_callback_function_type fcn);
+XRT_XOCL_EXPORT
+void
+add_command_done_callback(command_callback_function_type fcn);
 
 
 } // xocl
 
 #endif
-

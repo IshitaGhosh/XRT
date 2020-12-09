@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016-2017 Xilinx, Inc
+ * Copyright (C) 2016-2020 Xilinx, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may
  * not use this file except in compliance with the License. A copy of the
@@ -19,7 +19,6 @@
 #include "debug.h"
 
 #include "xocl/xclbin/xclbin.h"
-#include "xrt/util/memory.h"
 #include "xrt/scheduler/scheduler.h"
 
 #include <boost/filesystem/operations.hpp>
@@ -28,12 +27,13 @@
 #include <iostream>
 #include <cassert>
 
+#ifdef _WIN32
+#pragma warning ( disable : 4996 )
+#endif
+
 namespace {
 
 static xocl::platform* g_platform = nullptr;
-
-// conformance kernel hash -> xclbin file name
-static std::map<std::string, std::string> global_conformance_xclbin_map;
 
 static const char*
 value_or_empty(const char* value)
@@ -47,73 +47,43 @@ get_env(const char* env)
   return value_or_empty(std::getenv(env));
 }
 
-XOCL_UNUSED
 static bool
-is_emulation_mode()
+is_emulation()
 {
-  static bool emulation_mode = false;
-  static bool initialized = false;
-  if (!initialized) {
-    std::string env = get_env("XCL_EMULATION_MODE");
-    if(!env.empty() && (env=="sw_emu" || env=="hw_emu") )
-      emulation_mode = true;
-    initialized = true;
-  }
-  return emulation_mode;
+  static bool val = (std::getenv("XCL_EMULATION_MODE") != nullptr);
+  return val;
 }
 
-static std::vector<char>
-read_file(const std::string& filename)
+static bool
+is_sw_emulation()
 {
-  std::ifstream istr(filename,std::ios::binary|std::ios::ate);
-  if (!istr)
-    throw xocl::error(CL_BUILD_PROGRAM_FAILURE,"Cannot not open '" + filename + "' for reading");
-
-  auto pos = istr.tellg();
-  istr.seekg(0,std::ios::beg);
-
-  std::vector<char> buffer(pos);
-  istr.read (&buffer[0],pos);
-
-  return buffer;
+  static auto xem = std::getenv("XCL_EMULATION_MODE");
+  static bool swem = xem ? (std::strcmp(xem,"sw_emu")==0) : false;
+  return swem;
 }
 
-static void
-init_conformance()
+static bool
+is_hw_emulation()
 {
-  if (!std::getenv("XCL_CONFORMANCE"))
-    return ;
-
-  // iterate each xclbin in current directory
-  namespace bfs = boost::filesystem;
-  bfs::directory_iterator end;
-  for (bfs::directory_iterator itr(".");itr!=end;++itr) {
-    bfs::path file(itr->path());
-
-    if (bfs::exists(file) && bfs::is_regular_file(file) && file.extension()==".xclbin") {
-      auto xclbin = xocl::xclbin(read_file(file.string()));
-      for (auto hash : xclbin.conformance_kernel_hashes())  {
-        XOCL_DEBUG(std::cout,"(hash,file)=(",hash,",",file.string(),")\n");
-        global_conformance_xclbin_map.emplace(hash,file.string());
-      }
-    }
-  }
+  static auto xem = std::getenv("XCL_EMULATION_MODE");
+  static bool hwem = xem ? (std::strcmp(xem,"hw_emu")==0) : false;
+  return hwem;
 }
 
-}
+} // namespace
 
 namespace xocl {
 
 class platform::xrt_device_manager
 {
-  std::vector<xrt::device>  m_all; // owner
-  std::vector<xrt::device*> m_hw;
-  std::vector<xrt::device*> m_hwem;
-  std::vector<xrt::device*> m_swem;
+  std::vector<xrt_xocl::device>  m_all; // owner
+  std::vector<xrt_xocl::device*> m_hw;
+  std::vector<xrt_xocl::device*> m_hwem;
+  std::vector<xrt_xocl::device*> m_swem;
 
 public:
   xrt_device_manager()
-    : m_all(xrt::loadDevices())
+    : m_all(xrt_xocl::loadDevices())
   {
     if (m_all.empty())
       throw xocl::error(CL_DEVICE_NOT_FOUND,"No devices found");
@@ -136,10 +106,6 @@ public:
     std::reverse(m_hw.begin(),m_hw.end());
     std::reverse(m_hwem.begin(),m_hwem.end());
     std::reverse(m_swem.begin(),m_swem.end());
-
-    // Sanity checks
-    if (m_hwem.size() != m_swem.size())
-      throw xocl::error(CL_DEVICE_NOT_FOUND,"Emulation device mismatch");
   }
 
   bool
@@ -160,10 +126,10 @@ public:
     return !m_hwem.empty();
   }
 
-  xrt::device*
+  xrt_xocl::device*
   get_swem_device()
   {
-    xrt::device* dev = nullptr;
+    xrt_xocl::device* dev = nullptr;
     if (has_swem_devices()) {
       dev = m_swem.back();
       m_swem.pop_back();
@@ -171,10 +137,10 @@ public:
     return dev;
   }
 
-  xrt::device*
+  xrt_xocl::device*
   get_hwem_device()
   {
-    xrt::device* dev = nullptr;
+    xrt_xocl::device* dev = nullptr;
     if (has_hwem_devices()) {
       dev = m_hwem.back();
       m_hwem.pop_back();
@@ -182,10 +148,10 @@ public:
     return dev;
   }
 
-  xrt::device*
+  xrt_xocl::device*
   get_hw_device()
   {
-    xrt::device* dev = nullptr;
+    xrt_xocl::device* dev = nullptr;
     if (has_hw_devices()) {
       dev = m_hw.back();
       m_hw.pop_back();
@@ -193,16 +159,16 @@ public:
     return dev;
   }
 
-  xrt::device*
+  xrt_xocl::device*
   get_hwem_device(const std::string& name)
   {
     auto itr = std::find_if(m_hwem.begin(),m_hwem.end(),
-                            [&name](const xrt::device* dev) {
+                            [&name](const xrt_xocl::device* dev) {
                               return dev->getName()==name;
                             });
     if (itr==m_hwem.end())
       return nullptr;
-    xrt::device* dev = *itr;
+    xrt_xocl::device* dev = *itr;
     m_hwem.erase(itr);
     return dev;
   }
@@ -210,7 +176,7 @@ public:
 
 platform::
 platform()
-  : m_device_mgr(xrt::make_unique<xrt_device_manager>())
+  : m_device_mgr(std::make_unique<xrt_device_manager>())
 {
   static unsigned int uid_count = 0;
   m_uid = uid_count++;
@@ -220,22 +186,28 @@ platform()
 
   XOCL_DEBUG(std::cout,"xocl::platform::platform(",m_uid,")\n");
 
-  if (is_emulation_mode()) {
-    while (auto hwem_device = m_device_mgr->get_hwem_device()) {
-      auto swem_device = m_device_mgr->get_swem_device();
-      auto udev = xrt::make_unique<xocl::device>(this,swem_device,hwem_device);
-#ifndef PMD_OCL
+  if (is_sw_emulation()) {
+    while (auto swem_device = m_device_mgr->get_swem_device()) {
+      auto udev = std::make_unique<xocl::device>(this,swem_device);
       auto dev = udev.release();
       add_device(dev);
       dev->release();
-#endif
+    }
+  }
+      
+  if (is_hw_emulation()) {
+    while (auto hwem_device = m_device_mgr->get_hwem_device()) {
+      auto udev = std::make_unique<xocl::device>(this,hwem_device);
+      auto dev = udev.release();
+      add_device(dev);
+      dev->release();
     }
   }
 
   //User can target either emulation or board. Not both at the same time.
-  if (!is_emulation_mode() && m_device_mgr->has_hw_devices()) {
-    while (xrt::device* hw_device = m_device_mgr->get_hw_device()) {
-      auto udev = xrt::make_unique<xocl::device>(this,hw_device,nullptr,nullptr);
+  if (!is_emulation() && m_device_mgr->has_hw_devices()) {
+    while (xrt_xocl::device* hw_device = m_device_mgr->get_hw_device()) {
+      auto udev = std::make_unique<xocl::device>(this,hw_device);
       auto dev = udev.release();
       add_device(dev);
       dev->release();
@@ -243,13 +215,11 @@ platform()
   }
 
   try {
-    xrt::scheduler::start();
+    xrt_xocl::scheduler::start();
   }
   catch(const std::exception&) {
     throw error(CL_OUT_OF_HOST_MEMORY,"failed to allocate platform event_scheduler");
   }
-
-  init_conformance();
 }
 
 platform::
@@ -257,7 +227,7 @@ platform::
 {
   XOCL_DEBUG(std::cout,"xocl::platform::~platform(",m_uid,")\n");
   try {
-    xrt::scheduler::stop();
+    xrt_xocl::scheduler::stop();
     g_platform = nullptr;
   }
   catch (const std::exception& ex) {
@@ -323,15 +293,6 @@ get_xilinx_sdx()
 {
   static std::string xilinx_sdx = get_env("XILINX_SDX");
   return xilinx_sdx;
-}
-
-std::string
-conformance_get_xclbin(const std::string& hash)
-{
-  auto itr = global_conformance_xclbin_map.find(hash);
-  return itr==global_conformance_xclbin_map.end()
-    ? ""
-    : (*itr).second;
 }
 
 } // xocl

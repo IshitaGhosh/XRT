@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2018-2019 Xilinx, Inc
+ * Copyright (C) 2018-2020 Xilinx, Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may
  * not use this file except in compliance with the License. A copy of the
@@ -13,13 +13,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-
-#include <CL/opencl.h>
+#include "xocl/config.h"
 #include "xocl/core/stream.h"
 #include "xocl/core/error.h"
 #include "plugin/xdp/profile.h"
+#include <CL/opencl.h>
 
-// Copyright 2018 Xilinx, Inc. All rights reserved.
+// Copyright 2018-2020 Xilinx, Inc. All rights reserved.
 
 namespace xocl {
 static void
@@ -27,10 +27,10 @@ validOrError(cl_stream stream)
 {
 }
 
-cl_int 
+cl_int
 clReleaseStream(cl_stream stream)
 {
-  validOrError(stream);   
+  validOrError(stream);
   return xocl::xocl(stream)->close();
 }
 
@@ -43,7 +43,7 @@ clReleaseStream(cl_stream stream) CL_API_SUFFIX__VERSION_1_0
     PROFILE_LOG_FUNCTION_CALL;
     return xocl::clReleaseStream(stream);
   }
-  catch (const xrt::error& ex) {
+  catch (const xrt_xocl::error& ex) {
     xocl::send_exception_message(ex.what());
   }
   catch (const std::exception& ex) {
@@ -51,5 +51,3 @@ clReleaseStream(cl_stream stream) CL_API_SUFFIX__VERSION_1_0
   }
   return CL_INVALID_VALUE;
 }
-
-
