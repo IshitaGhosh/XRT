@@ -35,11 +35,13 @@ DeviceTraceOffload::DeviceTraceOffload(DeviceIntf* dInt,
   // Select appropriate reader
   if(has_fifo()) {
     m_read_trace = std::bind(&DeviceTraceOffload::read_trace_fifo, this, std::placeholders::_1);
+    deviceTraceLogger->setClockTrainingInfo(1);
   } else {
     m_read_trace = std::bind(&DeviceTraceOffload::read_trace_s2mm, this, std::placeholders::_1);
+    ts2mm_info.num_ts2mm = dev_intf->getNumberTS2MM();
+    deviceTraceLogger->setClockTrainingInfo(ts2mm_info.num_ts2mm);
   }
 
-  ts2mm_info.num_ts2mm = dev_intf->getNumberTS2MM();
   ts2mm_info.full_buf_size = trbuf_sz;
 
   // Initialize internal variables
@@ -130,14 +132,17 @@ void DeviceTraceOffload::process_trace()
   bool q_empty = true;
   std::unique_ptr<char[]> buf;
   uint64_t size = 0;
+  uint64_t ts2mm_index = 0;
   do {
     q_read=false;
     ts2mm_info.process_queue_lock.lock();
     if (!ts2mm_info.data_queue.empty()) {
       buf = std::move(ts2mm_info.data_queue.front());
       size = ts2mm_info.size_queue.front();
+      ts2mm_index = ts2mm_info.ts2mm_index_queue.front();
       ts2mm_info.data_queue.pop();
       ts2mm_info.size_queue.pop();
+      ts2mm_info.ts2mm_index_queue.pop();
       q_read = true;
       q_empty = ts2mm_info.data_queue.empty();
     }
@@ -146,7 +151,7 @@ void DeviceTraceOffload::process_trace()
     // Processing takes a lot more time compared to everything else
     if (q_read) {
       debug_stream << "Process " << size << " bytes of trace" << std::endl;
-      deviceTraceLogger->processTraceData(buf.get(), size) ;
+      deviceTraceLogger->processTraceData(buf.get(), size, ts2mm_index) ;
       buf.reset();
     }
   } while (!q_empty);
@@ -226,7 +231,7 @@ void DeviceTraceOffload::read_trace_fifo(bool)
 #endif
     uint32_t* buf = nullptr ;
     numBytes = dev_intf->readTrace(buf) ; // Should allocate buf
-    deviceTraceLogger->processTraceData(buf, numBytes) ;
+    deviceTraceLogger->processTraceData(buf, numBytes, 0) ;
     num_packets += numBytes / sizeof(uint64_t) ;
     if (buf)
       delete [] buf ;
@@ -319,6 +324,7 @@ void DeviceTraceOffload::read_trace_s2mm(bool force)
   ts2mm_info.process_queue_lock.lock();
   ts2mm_info.data_queue.push(std::move(tmp));
   ts2mm_info.size_queue.push(nBytes);
+  ts2mm_info.ts2mm_index_queue.push(i);
   ts2mm_info.process_queue_lock.unlock();
 
   // Print warning if processing large amount of trace

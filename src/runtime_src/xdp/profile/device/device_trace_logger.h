@@ -25,6 +25,21 @@
 
 namespace xdp {
 
+  struct ClockTrainingInfo {
+    double offset;
+    double slope;
+    double x1, y1, x2, y2;
+
+    ClockTrainingInfo()
+      : offset(0),
+        slope(0),
+        x1(0),    
+        y1(0),    
+        x2(0),    
+        y2(0)
+    {} 
+  };
+
   // The responsiblity of this class is to convert raw Device PL events
   //  into database events and log them into the database
   class DeviceTraceLogger
@@ -43,6 +58,11 @@ namespace xdp {
     std::vector<uint64_t> aimLastTrans;
     std::vector<uint64_t> asmLastTrans;
 
+    // Clock Training Info Index for Last Transactions
+    std::vector<uint64_t> amClockTrainingInfo;
+    std::vector<uint64_t> aimClockTrainingInfo;
+    std::vector<uint64_t> asmClockTrainingInfo;
+
     // Parsing functions for getting different parts of a device event packet
     inline uint64_t getDeviceTimestamp(uint64_t trace)
       { return (trace & 0x1FFFFFFFFFFF) - firstTimestamp; }
@@ -57,19 +77,23 @@ namespace xdp {
     inline bool isClockTraining(uint64_t trace)
       { return (((trace >> 63) & 0x1) == 1) ;}
 
-    double clockTrainOffset;
     double traceClockRateMHz;
-    double clockTrainSlope;
+
+    std::vector<ClockTrainingInfo> clockTrainingInfo;
+
+    inline const double getHalfCycleTimeInMs() {
+      return ((0.5/traceClockRateMHz)/1000.0);
+    }
 
     bool warnCUIncomplete=false;
 
-    void trainDeviceHostTimestamps(uint64_t deviceTimestamp, uint64_t hostTimestamp);
-    double convertDeviceToHostTimestamp(uint64_t deviceTimestamp);
+    void trainDeviceHostTimestamps(uint64_t deviceTimestamp, uint64_t hostTimestamp, uint64_t ts2mm_index);
+    double convertDeviceToHostTimestamp(uint64_t deviceTimestamp, uint64_t ts2mm_index);
 
     // Functions for adding device events based on the monitor type
-    void addAMEvent (uint64_t trace, double hostTimestamp) ;
-    void addAIMEvent(uint64_t trace, double hostTimestamp) ;
-    void addASMEvent(uint64_t trace, double hostTimestamp) ;
+    void addAMEvent (uint64_t trace, double hostTimestamp, uint64_t ts2mm_index) ;
+    void addAIMEvent(uint64_t trace, double hostTimestamp, uint64_t ts2mm_index) ;
+    void addASMEvent(uint64_t trace, double hostTimestamp, uint64_t ts2mm_index) ;
 
     // Functions for adding specific types of device events from the
     //  raw device data
@@ -92,9 +116,9 @@ namespace xdp {
     void addApproximateStreamEndEvents();
     void addApproximateStallEndEvents(uint64_t trace, double hostTimestamp, uint32_t slot, uint64_t monTraceId, int32_t cuId) ;
 
-    void addApproximateDataTransferEvent(VTFEventType type, uint64_t aimTraceID, int32_t amId, int32_t cuId);
+    void addApproximateDataTransferEvent(VTFEventType type, uint64_t aimTraceID, int32_t amId, int32_t cuId, uint32_t aimSlotId);
     void addApproximateStreamEndEvent(uint64_t asmIndex, uint64_t asmTraceID, VTFEventType streamEventType,
-                                      int32_t cuId, int32_t  amId, uint64_t cuLastTimestamp,
+                                      int32_t cuId, int32_t  amId, uint64_t cuLastTimestamp, uint64_t aimClockTrainInfo,
                                       uint64_t &asmAppxLastTransTimeStamp, bool &unfinishedASMevents);
 
     uint64_t firstTimestamp = 0 ;
@@ -104,8 +128,12 @@ namespace xdp {
     XDP_EXPORT DeviceTraceLogger(uint64_t devId);
     XDP_EXPORT ~DeviceTraceLogger();
 
-    XDP_EXPORT void processTraceData(void* data, uint64_t numBytes) ;
+    XDP_EXPORT void processTraceData(void* data, uint64_t numBytes, uint64_t ts2mm_index) ;
     XDP_EXPORT void endProcessTraceData();
+
+    inline void setClockTrainingInfo(uint64_t num) {
+      clockTrainingInfo.resize(num);
+    }
   } ;
 
 }

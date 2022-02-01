@@ -88,6 +88,7 @@ struct Ts2mmInfo {
 
   std::queue<std::unique_ptr<char[]>> data_queue;
   std::queue<uint64_t> size_queue;
+  std::queue<uint64_t> ts2mm_index_queue;
   std::mutex process_queue_lock;
 
   Ts2mmInfo()

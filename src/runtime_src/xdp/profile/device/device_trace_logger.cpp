@@ -32,12 +32,9 @@ namespace xdp {
   DeviceTraceLogger::DeviceTraceLogger(uint64_t devId)
     : deviceId(devId),
       db(VPDatabase::Instance()),
-      clockTrainOffset(0),
-      traceClockRateMHz(0),
-      clockTrainSlope(0)
+      traceClockRateMHz(0)
   {
     traceClockRateMHz = db->getStaticInfo().getClockRateMHz(deviceId);
-    clockTrainSlope = 1000.0/traceClockRateMHz;
 
     xclbin = (db->getStaticInfo()).getCurrentlyLoadedXclbin(devId) ;
 
@@ -67,7 +64,7 @@ namespace xdp {
     // Execution time = (end time) - (start time)
     std::pair<uint64_t, uint64_t> startEventInfo = cuStarts[s].front();
     auto startEventID = startEventInfo.first ;
-    auto startTime = convertDeviceToHostTimestamp(startEventInfo.second);
+    auto startTime = convertDeviceToHostTimestamp(startEventInfo.second, amClockTrainingInfo[s]);
     auto executionTime = hostTimestamp - startTime;
 
     cuStarts[s].pop_front();
@@ -171,7 +168,7 @@ namespace xdp {
     }
   }
 
-  void DeviceTraceLogger::addAMEvent(uint64_t trace, double hostTimestamp)
+  void DeviceTraceLogger::addAMEvent(uint64_t trace, double hostTimestamp, uint64_t ts2mm_index)
   {
     uint64_t traceID = getTraceId(trace) ;
     uint64_t deviceTimestamp = getDeviceTimestamp(trace) ;
@@ -187,6 +184,8 @@ namespace xdp {
       //  packets we see from them.
       return ;
     }
+
+    amClockTrainingInfo[slot] = ts2mm_index;
 
     int32_t cuId = mon->cuIndex;
 
@@ -219,7 +218,7 @@ namespace xdp {
     }
   }
 
-  void DeviceTraceLogger::addAIMEvent(uint64_t trace, double hostTimestamp)
+  void DeviceTraceLogger::addAIMEvent(uint64_t trace, double hostTimestamp, uint64_t ts2mm_index)
   {
     uint64_t traceID = getTraceId(trace) ;
 
@@ -233,13 +232,15 @@ namespace xdp {
       return ;
     }
 
+    aimClockTrainingInfo[slot] = ts2mm_index;
+
     int32_t cuId = mon->cuIndex ;
     VTFEventType ty = (traceID & 0x1) ? KERNEL_WRITE : KERNEL_READ ;
 
     addKernelDataTransferEvent(ty, trace, slot, cuId, hostTimestamp);
   }
 
-  void DeviceTraceLogger::addASMEvent(uint64_t trace, double hostTimestamp)
+  void DeviceTraceLogger::addASMEvent(uint64_t trace, double hostTimestamp, uint64_t ts2mm_index)
   {
     auto traceId = getTraceId(trace) ;
     auto eventFlags = getEventFlags(trace) ;
@@ -254,6 +255,9 @@ namespace xdp {
       //  packets we see from them.
       return ;
     }
+
+    asmClockTrainingInfo[slot] = ts2mm_index;
+
     int32_t cuId = mon->cuIndex;
 
     bool isSingle    = eventFlags & 0x10;
@@ -410,6 +414,7 @@ namespace xdp {
       // check if the memory ports on current cu has any event
 
       uint64_t cuLastTimestamp  = amLastTrans[amIndex];
+      uint64_t ts2mm_index      = amClockTrainingInfo[amIndex];
 
       // get CU Id for the current slot
       Monitor* am = db->getStaticInfo().getAMonitor(deviceId, xclbin, amIndex);
@@ -432,6 +437,7 @@ namespace xdp {
         // Update lastTimestamp as last activity on the AIM for the current CU is later
         // than what was recorded for the CU(AM) itself.
         cuLastTimestamp = aimLastTrans[aimIndex];
+        ts2mm_index     = aimClockTrainingInfo[aimIndex];
       }
       // Check if any streaming port on current CU had a trace packet
       for(uint64_t asmIndex = 0; asmIndex < asmLastTrans.size(); ++asmIndex) {
@@ -450,6 +456,7 @@ namespace xdp {
         // Update lastTimestamp as last activity on the ASM for the current CU is later
         // than what was recorded for the CU(AM) itself.
         cuLastTimestamp = asmLastTrans[asmIndex];
+        ts2mm_index     = asmClockTrainingInfo[asmIndex];
       }
       if(0 == cuLastTimestamp) {
         continue; // nothing to do? what about unmatched start?
@@ -461,12 +468,12 @@ namespace xdp {
       }
 
       // end event
-      double hostTimestamp = convertDeviceToHostTimestamp(cuLastTimestamp);
+      double hostTimestamp = convertDeviceToHostTimestamp(cuLastTimestamp, ts2mm_index);
       addCUEndEvent(hostTimestamp, cuLastTimestamp, amIndex, cuId) ;
     }
   }
 
-  void DeviceTraceLogger::addApproximateDataTransferEvent(VTFEventType type, uint64_t aimTraceID, int32_t amId, int32_t cuId)
+  void DeviceTraceLogger::addApproximateDataTransferEvent(VTFEventType type, uint64_t aimTraceID, int32_t amId, int32_t cuId, uint32_t aimSlotId)
   {
     std::tuple<VTFEventType, uint64_t, double, uint64_t> startEvent =
       db->getDynamicInfo().matchingDeviceEventStart(aimTraceID, type);
@@ -483,18 +490,18 @@ namespace xdp {
     if (amId == -1) {
       // This is a floating AIM monitor not attached to any particular CU.
       transApproxEndTimestamp = transStartTimestamp ;
-      transApproxEndHostTimestamp = convertDeviceToHostTimestamp(transStartTimestamp) + halfCycleTimeInMs ;
+      transApproxEndHostTimestamp = convertDeviceToHostTimestamp(transStartTimestamp, aimClockTrainingInfo[aimSlotId]) + halfCycleTimeInMs ;
     }
     else {
       // Check the last known transaction on the CU to approximate the end
       uint64_t cuLastTimestamp  = amLastTrans[amId];
       if (transStartTimestamp < cuLastTimestamp) {
         transApproxEndTimestamp = cuLastTimestamp ;
-        transApproxEndHostTimestamp = convertDeviceToHostTimestamp(cuLastTimestamp);
+        transApproxEndHostTimestamp = convertDeviceToHostTimestamp(cuLastTimestamp, amClockTrainingInfo[amId]);
       }
       else {
         transApproxEndTimestamp = transStartTimestamp ;
-        transApproxEndHostTimestamp = convertDeviceToHostTimestamp(transStartTimestamp) + halfCycleTimeInMs ;
+        transApproxEndHostTimestamp = convertDeviceToHostTimestamp(transStartTimestamp, aimClockTrainingInfo[aimSlotId]) + halfCycleTimeInMs ;
       }
     }
     // Add approximate end event
@@ -536,8 +543,8 @@ namespace xdp {
         }
       }
 
-      addApproximateDataTransferEvent(KERNEL_READ, aimReadId, amId, cuId) ;
-      addApproximateDataTransferEvent(KERNEL_WRITE, aimWriteId, amId, cuId) ;
+      addApproximateDataTransferEvent(KERNEL_READ, aimReadId, amId, cuId, mon->slotIndex) ;
+      addApproximateDataTransferEvent(KERNEL_WRITE, aimWriteId, amId, cuId, mon->slotIndex) ;
     }
   }
 
@@ -549,7 +556,7 @@ namespace xdp {
          aimIndex < (db->getStaticInfo()).getNumAIM(deviceId, xclbin) ;
          ++aimIndex) {
 
-      uint64_t aimSlotID = (aimIndex * 2) + MIN_TRACE_ID_AIM ;
+      uint64_t aimReadId = (aimIndex * 2) + MIN_TRACE_ID_AIM ;
       Monitor* mon =
         db->getStaticInfo().getAIMonitor(deviceId, xclbin, aimIndex);
       if (!mon)
@@ -562,8 +569,8 @@ namespace xdp {
       if (cu) {
         amId = cu->getAccelMon();
       }
-      addApproximateDataTransferEvent(KERNEL_READ, aimSlotID, amId, cuId) ;
-      addApproximateDataTransferEvent(KERNEL_WRITE, aimSlotID + 1, amId, cuId) ;
+      addApproximateDataTransferEvent(KERNEL_READ, aimReadId, amId, cuId, aimIndex) ;
+      addApproximateDataTransferEvent(KERNEL_WRITE, aimReadId + 1, amId, cuId, aimIndex) ;
     }
   }
 
@@ -580,6 +587,7 @@ namespace xdp {
       int32_t  cuId = mon->cuIndex;
       int32_t  amId = -1;
       uint64_t cuLastTimestamp = 0, asmAppxLastTransTimeStamp = 0;
+      uint64_t amClockTrainInfo = 0;
       if(-1 != cuId) {
         ComputeUnitInstance* cu = db->getStaticInfo().getCU(deviceId, cuId);
         if(cu) {
@@ -587,17 +595,18 @@ namespace xdp {
         }
         if(-1 != amId) {
           cuLastTimestamp  = amLastTrans[amId];
+          amClockTrainInfo = amClockTrainingInfo[amId];
         }
       }
 
       VTFEventType streamEventType = (mon->isStreamRead) ? KERNEL_STREAM_READ : KERNEL_STREAM_WRITE;
-      addApproximateStreamEndEvent(asmIndex, asmTraceID, streamEventType, cuId, amId, cuLastTimestamp, asmAppxLastTransTimeStamp, unfinishedASMevents);
+      addApproximateStreamEndEvent(asmIndex, asmTraceID, streamEventType, cuId, amId, cuLastTimestamp, amClockTrainInfo, asmAppxLastTransTimeStamp, unfinishedASMevents);
 
       streamEventType = (mon->isStreamRead) ? KERNEL_STREAM_READ_STALL : KERNEL_STREAM_WRITE_STALL;
-      addApproximateStreamEndEvent(asmIndex, asmTraceID, streamEventType, cuId, amId, cuLastTimestamp, asmAppxLastTransTimeStamp, unfinishedASMevents);
+      addApproximateStreamEndEvent(asmIndex, asmTraceID, streamEventType, cuId, amId, cuLastTimestamp, amClockTrainInfo, asmAppxLastTransTimeStamp, unfinishedASMevents);
 
       streamEventType = (mon->isStreamRead) ? KERNEL_STREAM_READ_STARVE : KERNEL_STREAM_WRITE_STARVE;
-      addApproximateStreamEndEvent(asmIndex, asmTraceID, streamEventType, cuId, amId, cuLastTimestamp, asmAppxLastTransTimeStamp, unfinishedASMevents);
+      addApproximateStreamEndEvent(asmIndex, asmTraceID, streamEventType, cuId, amId, cuLastTimestamp, amClockTrainInfo, asmAppxLastTransTimeStamp, unfinishedASMevents);
 
       asmLastTrans[asmIndex] = asmAppxLastTransTimeStamp;
     }
@@ -630,7 +639,8 @@ namespace xdp {
   }
 
   void DeviceTraceLogger::addApproximateStreamEndEvent(uint64_t asmIndex, uint64_t asmTraceID, VTFEventType streamEventType, 
-                                                                 int32_t cuId, int32_t  amId, uint64_t cuLastTimestamp,
+                                                                 int32_t cuId, int32_t  amId,
+                                                                 uint64_t cuLastTimestamp, uint64_t amClockTrainInfo,
                                                                  uint64_t &asmAppxLastTransTimeStamp, bool &unfinishedASMevents)
   {
     uint64_t asmStartTimestamp = 0, asmAppxEndTimestamp = 0;
@@ -645,10 +655,12 @@ namespace xdp {
       if(-1 == amId) {
         // For floating ASM i.e. ASM not attached to any CU or for ASMs attached to free running CUs which don't have AM attached
         asmAppxEndTimestamp = asmStartTimestamp;
-        asmAppxEndHostTimestamp = convertDeviceToHostTimestamp(asmStartTimestamp) + halfCycleTimeInMs;
+        asmAppxEndHostTimestamp = convertDeviceToHostTimestamp(asmStartTimestamp, asmClockTrainingInfo[asmIndex]) + halfCycleTimeInMs;
       } else {
         asmAppxEndTimestamp = (asmStartTimestamp < cuLastTimestamp) ? cuLastTimestamp : asmStartTimestamp;
-        asmAppxEndHostTimestamp = (asmStartTimestamp < cuLastTimestamp) ? convertDeviceToHostTimestamp(cuLastTimestamp) : (convertDeviceToHostTimestamp(asmStartTimestamp) + halfCycleTimeInMs);
+        asmAppxEndHostTimestamp = (asmStartTimestamp < cuLastTimestamp) 
+                                  ? convertDeviceToHostTimestamp(cuLastTimestamp, amClockTrainInfo) 
+                                  : (convertDeviceToHostTimestamp(asmStartTimestamp, asmClockTrainingInfo[asmIndex]) + halfCycleTimeInMs);
       }
       asmAppxLastTransTimeStamp = (asmAppxLastTransTimeStamp < asmAppxEndTimestamp) ? asmAppxEndTimestamp : asmAppxLastTransTimeStamp;
 
@@ -666,38 +678,34 @@ namespace xdp {
   // NOTE: see description of PTP @ http://en.wikipedia.org/wiki/Precision_Time_Protocol
   // clock training relation is linear within small durations (1 sec)
   // x, y coordinates are used for clock training
-  void DeviceTraceLogger::trainDeviceHostTimestamps(uint64_t deviceTimestamp, uint64_t hostTimestamp)
+  void DeviceTraceLogger::trainDeviceHostTimestamps(uint64_t deviceTimestamp, uint64_t hostTimestamp, uint64_t i /*ts2mm_index*/)
   {
-    static double y1 = 0.0;
-    static double y2 = 0.0;
-    static double x1 = 0.0;
-    static double x2 = 0.0;
-    if (!y1 && !x1) {
-      y1 = static_cast <double> (hostTimestamp);
-      x1 = static_cast <double> (deviceTimestamp);
+    if (!clockTrainingInfo[i].y1 && !clockTrainingInfo[i].x1) {
+      clockTrainingInfo[i].y1 = static_cast <double> (hostTimestamp);
+      clockTrainingInfo[i].x1 = static_cast <double> (deviceTimestamp);
     } else {
-      y2 = static_cast <double> (hostTimestamp);
-      x2 = static_cast <double> (deviceTimestamp);
+      clockTrainingInfo[i].y2 = static_cast <double> (hostTimestamp);
+      clockTrainingInfo[i].x2 = static_cast <double> (deviceTimestamp);
       // slope in ns/cycle
       if (xdp::getFlowMode() == HW) {
-        clockTrainSlope = 1000.0/traceClockRateMHz;
+        clockTrainingInfo[i].slope = 1000.0/traceClockRateMHz;
       } else {
-        clockTrainSlope = (y2 - y1) / (x2 - x1);
+        clockTrainingInfo[i].slope = (clockTrainingInfo[i].y2 - clockTrainingInfo[i].y1) / (clockTrainingInfo[i].x2 - clockTrainingInfo[i].x1);
       }
-      clockTrainOffset = y2 - clockTrainSlope * x2;
+      clockTrainingInfo[i].offset = clockTrainingInfo[i].y2 - clockTrainingInfo[i].slope * clockTrainingInfo[i].x2;
       // next time update x1, y1
-      y1 = 0.0;
-      x1 = 0.0;
+      clockTrainingInfo[i].y1 = 0.0;
+      clockTrainingInfo[i].x1 = 0.0;
     }
   }
 
   // Convert device timestamp to host time domain (in msec)
-  double DeviceTraceLogger::convertDeviceToHostTimestamp(uint64_t deviceTimestamp)
+  double DeviceTraceLogger::convertDeviceToHostTimestamp(uint64_t deviceTimestamp, uint64_t i /*ts2mm_index*/)
   {
-    return ((clockTrainSlope * (double)deviceTimestamp) + clockTrainOffset)/1e6;
+    return ((clockTrainingInfo[i].slope * (double)deviceTimestamp) + clockTrainingInfo[i].offset)/1e6;
   }
 
-  void DeviceTraceLogger::processTraceData(void* data, uint64_t numBytes)
+  void DeviceTraceLogger::processTraceData(void* data, uint64_t numBytes, uint64_t ts2mm_index)
   {
     if (numBytes == 0)      return ;
     if (!VPDatabase::alive()) return ;
@@ -755,7 +763,8 @@ namespace xdp {
           // It requires four complete clock training packets before
           //  we can perform the clock training algorithm
           trainDeviceHostTimestamps(clockTrainingDeviceTimestamp,
-                                    clockTrainingHostTimestamp);
+                                    clockTrainingHostTimestamp,
+                                    ts2mm_index);
           clockTrainingHostTimestamp = 0 ;
           clockTrainingDeviceTimestamp = 0 ;
           modulus = 0 ;
@@ -772,15 +781,15 @@ namespace xdp {
         continue;
       }
 
-      double hostTimestamp = convertDeviceToHostTimestamp(deviceTimestamp);
+      double hostTimestamp = convertDeviceToHostTimestamp(deviceTimestamp, ts2mm_index);
       if (AMPacket) {
-        addAMEvent(packet, hostTimestamp);
+        addAMEvent(packet, hostTimestamp, ts2mm_index);
       }
       if (AIMPacket) {
-        addAIMEvent(packet, hostTimestamp) ;
+        addAIMEvent(packet, hostTimestamp, ts2mm_index) ;
       }
       if (ASMPacket) {
-        addASMEvent(packet, hostTimestamp) ;
+        addASMEvent(packet, hostTimestamp, ts2mm_index) ;
       }
     }
 
