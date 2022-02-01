@@ -44,10 +44,15 @@ namespace xdp {
     cuStarts.resize(numAM);
     amLastTrans.resize(numAM);
 
+    amClockTrainingInfo.resize(numAM);
+
     // Use the number of monitors in the PL region (not the shell) including
     //  any configured for just trace.
     aimLastTrans.resize((db->getStaticInfo()).getNumUserAIM(deviceId, xclbin)) ;
     asmLastTrans.resize((db->getStaticInfo()).getNumUserASM(deviceId, xclbin)) ;
+
+    aimClockTrainingInfo.resize((db->getStaticInfo()).getNumUserAIM(deviceId, xclbin)) ;
+    asmClockTrainingInfo.resize((db->getStaticInfo()).getNumUserASM(deviceId, xclbin)) ;
   }
 
   DeviceTraceLogger::~DeviceTraceLogger()
