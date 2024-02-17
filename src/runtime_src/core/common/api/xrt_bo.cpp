@@ -1019,6 +1019,7 @@ alloc_bo(const device_type& device, void* userptr, size_t sz, xrtBufferFlags fla
   // Embed grp in flags
   xcl_bo_flags xflags{flags};
   xcl_bo_flags xgrp{grp};
+
   xflags.bank = xgrp.bank;
   xflags.slot = xgrp.slot;
 
@@ -1034,8 +1035,14 @@ alloc_bo(const device_type& device, size_t sz, xrtBufferFlags flags, xrtMemoryGr
   // Embed grp in flags
   xcl_bo_flags xflags{flags};
   xcl_bo_flags xgrp{grp};
-  xflags.bank = xgrp.bank;
-  xflags.slot = xgrp.slot;
+
+  if (flags & 0xC00000000) {
+    xflags.bank = 1;
+    xflags.slot = 1;
+  } else {
+    xflags.bank = xgrp.bank;
+    xflags.slot = xgrp.slot;
+  }
 
   try {
     auto hwctx  = device.get_hwctx_handle();
@@ -1567,6 +1574,8 @@ mode_to_access(xrt::ext::bo::access_mode am)
     return XRT_BO_ACCESS_PROCESS;
   case xrt::ext::bo::access_mode::hybrid:
     return XRT_BO_ACCESS_HYBRID;
+  case xrt::ext::bo::access_mode::debug:
+    return XRT_BO_ACCESS_DEBUG;
   default:
     throw xrt_core::error("xrt::ext::bo: invalid access mode");
   }
@@ -1595,7 +1604,10 @@ adjust_buffer_flags(xrt::ext::bo::access_mode access)
   // instruction buffers are allocated as regular xrt::bo objects
   // or to-be new first-class instruction buffer
   xcl_bo_flags flags {0};
-  flags.flags = XRT_BO_FLAGS_HOST_ONLY;
+  if (access == xrt::ext::bo::access_mode::debug)
+    flags.flags = XCL_BO_FLAGS_CACHEABLE | 1;
+  else
+    flags.flags = XRT_BO_FLAGS_HOST_ONLY;
   flags.access = mode_to_access(access);
   flags.dir = mode_to_dir(access);
   return flags.all;

@@ -96,6 +96,7 @@ public:
     shared  = 1 << 2,
     process = 1 << 3,
     hybrid  = 1 << 4, 
+    debug   = 1 << 5,
   };
 
   friend constexpr access_mode operator&(access_mode lhs, access_mode rhs)

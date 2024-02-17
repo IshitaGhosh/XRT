@@ -58,11 +58,11 @@ close_cu_context(xclDeviceHandle handle, const xrt::hw_context& hwctx, xrt_core:
 
 // alloc_bo()
 std::unique_ptr<xrt_core::buffer_handle>
-alloc_bo(xclDeviceHandle, size_t size, unsigned int flags);
+alloc_bo(xclDeviceHandle, size_t size, unsigned long flags);
 
 // alloc_userptr_bo()
 std::unique_ptr<xrt_core::buffer_handle>
-alloc_bo(xclDeviceHandle, void* userptr, size_t size, unsigned int flags);
+alloc_bo(xclDeviceHandle, void* userptr, size_t size, unsigned long flags);
 
 // import_bo
 std::unique_ptr<xrt_core::buffer_handle>

@@ -104,7 +104,7 @@ struct xcl_bo_flags
 #define XRT_BO_ACCESS_SHARED        1
 #define XRT_BO_ACCESS_PROCESS       2
 #define XRT_BO_ACCESS_HYBRID        3
-
+#define XRT_BO_ACCESS_DEBUG        4
 /**
  * Shim level BO Flags for direction of data transfer
  * as seen from device.
