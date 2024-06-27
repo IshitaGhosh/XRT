@@ -1,0 +1,154 @@
+/**
+ * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. - All rights reserved
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may
+ * not use this file except in compliance with the License. A copy of the
+ * License is located at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+#define XDP_PLUGIN_SOURCE
+
+#include<regex>
+#include<string>
+
+#include "core/common/device.h"
+#include "core/common/message.h"
+#include "core/common/api/hw_context_int.h"
+
+#include "xdp/profile/plugin/aie_halt/aie_halt_plugin.h"
+#include "xdp/profile/plugin/vp_base/info.h"
+#include "xdp/profile/plugin/vp_base/utility.h"
+
+#ifdef XDP_CLIENT_BUILD
+#include "xdp/profile/plugin/aie_halt/clientDev/aie_halt.h"
+#endif
+
+namespace xdp {
+
+  bool AieHaltPlugin::live = false;
+
+  uint32_t ParseAieHaltBufferSizeConfig()
+  {
+    uint32_t bufSz = 0x20000;
+    std::string szCfgStr = xrt_core::config::get_aie_halt_buffer_size();
+    std::smatch subStr;
+
+    const std::regex validSzRegEx("\\s*([0-9]+)\\s*(K|k|M|m|)\\s*");
+    if (std::regex_match(szCfgStr, subStr, validSzRegEx)) {
+      try {
+        if ("K" == subStr[2] || "k" == subStr[2]) {
+          bufSz = (uint32_t)std::stoull(subStr[1]) * uint_constants::one_kb;
+        } else if ("M" == subStr[2] || "m" == subStr[2]) {
+          bufSz = (uint32_t)std::stoull(subStr[1]) * uint_constants::one_mb;
+        }
+
+      } catch (const std::exception &e) {
+        std::stringstream msg;
+        msg << "Invalid string specified for ML Timeline Buffer Size. "
+            << e.what() << std::endl;
+        xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg.str());
+      }
+
+    } else {
+      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT",
+                "Invalid string specified for ML Timeline Buffer Size");
+    }
+    return bufSz;
+  }
+
+  AieHaltPlugin::AieHaltPlugin()
+    : XDPPlugin()
+  {
+    AieHaltPlugin::live = true;
+
+    db->registerPlugin(this);
+    db->registerInfo(info::aie_halt);
+
+    mBufSz = ParseAieHaltBufferSizeConfig();
+  }
+
+  AieHaltPlugin::~AieHaltPlugin()
+  {
+    if (VPDatabase::alive()) {
+      try {
+        writeAll(false);
+      }
+      catch (...) {
+      }
+      db->unregisterPlugin(this);
+    }
+
+    AieHaltPlugin::live = false;
+  }
+
+  bool AieHaltPlugin::alive()
+  {
+    return AieHaltPlugin::live;
+  }
+
+  void AieHaltPlugin::updateDevice(void* hwCtxImpl)
+  {
+#ifdef XDP_CLIENT_BUILD
+    if (mHwCtxImpl) {
+      // For client device flow, only 1 device and xclbin is supported now.
+      return;
+    }
+    mHwCtxImpl = hwCtxImpl;
+
+    xrt::hw_context hwContext = xrt_core::hw_context_int::create_hw_context_from_implementation(mHwCtxImpl);
+    std::shared_ptr<xrt_core::device> coreDevice = xrt_core::hw_context_int::get_core_device(hwContext);
+
+    // Only one device for Client Device flow
+    uint64_t deviceId = db->addDevice("win_device");
+    (db->getStaticInfo()).updateDeviceClient(deviceId, coreDevice);
+    (db->getStaticInfo()).setDeviceName(deviceId, "win_device");
+
+    DeviceDataEntry.valid = true;
+    DeviceDataEntry.implementation = std::make_unique<AieHaltClientDevImpl>(db);
+    DeviceDataEntry.implementation->setHwContext(hwContext);
+    DeviceDataEntry.implementation->setBufSize(mBufSz);
+    DeviceDataEntry.implementation->updateDevice(mHwCtxImpl);
+#endif
+  }
+
+  void AieHaltPlugin::finishflushDevice(void* hwCtxImpl)
+  {
+#ifdef XDP_CLIENT_BUILD
+#if 0
+    if (!mHwCtxImpl || !DeviceDataEntry.valid) {
+      return;
+    }
+
+    if (hwCtxImpl != mHwCtxImpl) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", 
+          "Cannot retrieve ML Timeline data as a new HW Context Implementation is passed.");
+      return;
+    } 
+    DeviceDataEntry.valid = false;
+    DeviceDataEntry.implementation->finishflushDevice(mHwCtxImpl);
+#endif
+#endif
+  }
+
+  void AieHaltPlugin::writeAll(bool /*openNewFiles*/)
+  {
+#ifdef XDP_CLIENT_BUILD
+#if 0
+    if (!mHwCtxImpl || !DeviceDataEntry.valid) {
+      return;
+    }
+    DeviceDataEntry.valid = false;
+    DeviceDataEntry.implementation->finishflushDevice(mHwCtxImpl);
+#endif
+#endif
+  }
+
+}
