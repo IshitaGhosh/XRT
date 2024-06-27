@@ -34,8 +34,6 @@ namespace xdp {
     void finishflushDevice(void* hwCtxImpl);
     void writeAll(bool openNewFiles);
 
-    virtual void broadcast(VPDatabase::MessageType, void*);
-
     static bool alive();
 
     private:
@@ -47,7 +45,6 @@ namespace xdp {
     } DeviceDataEntry;
 
     void* mHwCtxImpl = nullptr;
-    uint32_t mBufSz  = 0x20000;
 
   };
 
