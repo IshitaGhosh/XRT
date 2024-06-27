@@ -88,7 +88,7 @@ namespace xdp {
 #endif
   }
 
-  void AieHaltPlugin::finishflushDevice(void* hwCtxImpl)
+  void AieHaltPlugin::finishflushDevice(void* /*hwCtxImpl*/)
   {
 #ifdef XDP_CLIENT_BUILD
 #if 0
