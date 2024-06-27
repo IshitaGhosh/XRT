@@ -42,8 +42,6 @@ namespace xdp {
 
     db->registerPlugin(this);
     db->registerInfo(info::aie_halt);
-
-    mBufSz = ParseAieHaltBufferSizeConfig();
   }
 
   AieHaltPlugin::~AieHaltPlugin()
