@@ -35,35 +35,6 @@ namespace xdp {
 
   bool AieHaltPlugin::live = false;
 
-  uint32_t ParseAieHaltBufferSizeConfig()
-  {
-    uint32_t bufSz = 0x20000;
-    std::string szCfgStr = xrt_core::config::get_aie_halt_buffer_size();
-    std::smatch subStr;
-
-    const std::regex validSzRegEx("\\s*([0-9]+)\\s*(K|k|M|m|)\\s*");
-    if (std::regex_match(szCfgStr, subStr, validSzRegEx)) {
-      try {
-        if ("K" == subStr[2] || "k" == subStr[2]) {
-          bufSz = (uint32_t)std::stoull(subStr[1]) * uint_constants::one_kb;
-        } else if ("M" == subStr[2] || "m" == subStr[2]) {
-          bufSz = (uint32_t)std::stoull(subStr[1]) * uint_constants::one_mb;
-        }
-
-      } catch (const std::exception &e) {
-        std::stringstream msg;
-        msg << "Invalid string specified for ML Timeline Buffer Size. "
-            << e.what() << std::endl;
-        xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg.str());
-      }
-
-    } else {
-      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT",
-                "Invalid string specified for ML Timeline Buffer Size");
-    }
-    return bufSz;
-  }
-
   AieHaltPlugin::AieHaltPlugin()
     : XDPPlugin()
   {
@@ -114,7 +85,7 @@ namespace xdp {
     DeviceDataEntry.valid = true;
     DeviceDataEntry.implementation = std::make_unique<AieHaltClientDevImpl>(db);
     DeviceDataEntry.implementation->setHwContext(hwContext);
-    DeviceDataEntry.implementation->setBufSize(mBufSz);
+    //DeviceDataEntry.implementation->setBufSize(mBufSz);
     DeviceDataEntry.implementation->updateDevice(mHwCtxImpl);
 #endif
   }

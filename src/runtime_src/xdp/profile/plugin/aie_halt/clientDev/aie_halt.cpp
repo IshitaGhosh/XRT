@@ -23,6 +23,11 @@
 #include "xdp/profile/plugin/aie_halt/clientDev/aie_halt.h"
 #include "xdp/profile/plugin/vp_base/utility.h"
 
+extern "C" {
+  #include <xaiengine.h>
+  #include <xaiengine/xaiegbl_params.h>
+}
+
 namespace xdp {
 
 
