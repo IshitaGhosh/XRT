@@ -37,6 +37,7 @@ namespace info {
   const uint64_t vart            = 0x1000 ;
   const uint64_t aie_status      = 0x2000 ;
   const uint64_t ml_timeline     = 0x4000 ;
+  const uint64_t multi_pdi_prof  = 0x8000 ;
 
 } // end namespace info
 } // end namespace xdp ;
