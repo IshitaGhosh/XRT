@@ -19,6 +19,8 @@
 
 #include "core/common/device.h"
 #include "core/common/message.h"
+#include "core/common/query.h"
+#include "core/common/query_requests.h"
 
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/database/static_info/aie_util.h"
@@ -57,7 +59,7 @@ namespace xdp {
     std::cout << " Got input " << a << std::endl;
 
     std::unique_ptr<aie::ClientTransaction> txnHandler
-        = std::make_unique<aie::ClientTransaction>(mHwContext, "AIE Halt");
+        = std::make_unique<aie::ClientTransaction>(mHwContext, "Multi PDI Prof");
     if (!txnHandler->initializeKernel("XDP_KERNEL"))
       return;
 
@@ -87,168 +89,70 @@ namespace xdp {
     if (RC != XAIE_OK) {
       xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "AIE Driver Initialization Failed.");
       return;
-    }    
+    }
 
+    //Start recording the transaction
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
+    // Profiling is 3rd custom OP
+    XAie_RequestCustomTxnOp(&aieDevInst);
+    XAie_RequestCustomTxnOp(&aieDevInst);
+    XAie_RequestCustomTxnOp(&aieDevInst);  // Read Reg
+    XAie_RequestCustomTxnOp(&aieDevInst);  // Record Timer
+    XAie_RequestCustomTxnOp(&aieDevInst);  // Merge Sync
+    
+    auto storeAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
+    uint32_t startCol = static_cast<uint32_t>(startCol) 
+    XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)storeAIEConfigOpCode, (void*)&startCol, sizeof(uint32_t));    
 
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 5));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 5));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 5));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 5));
-#if 0
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 5));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(1, 5));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(2, 5));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 2));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 3));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 4));
-    XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(3, 5));
-#endif
+    try {
+      auto device = xrt_core::hw_context_int::get_core_device(mHwContext);
+      if (!device)
+        return;
 
-    uint8_t* txnBin = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
+      auto aiePartitionInfo = xrt_core::device_query<xrt_core::query::aie_partition_info>(device.get());
+      if (aiePartitionInfo.empty()) {
+        xrt_core::message::send(severity_level::info, "XRT", "No AIE partition information found.");
+        return;
+      }
 
-    std::ofstream txnBinF("coreHalt.bin", std::ios::binary);
-    XAie_TxnHeader *txnHdr = (XAie_TxnHeader*)txnBin;
-    txnBinF.write((const char*)txnBin, txnHdr->TxnSize);
+      for (auto& info : aiePartitionInfo) {
+        auto startCol = static_cast<uint8_t>(info.start_col);
+        xrt_core::message::send(severity_level::info, "XRT",
+            "Partition shift of " + std::to_string(startCol) +
+            " was found, number of columns: " + std::to_string(info.num_cols));
+        uint32_t* colNum = (uint32_t*)malloc(info.num_col*sizeof(uint32_t));
+        for (uint64_t i = 0; i < info.num_cols; i++) {
+          // call
+          colNum[i] = static_cast<uint32_t>(info.start_col+i);
+          XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)storeAIEConfigOpCode, (void*)colNum[i], sizeof(uint32_t));
+        }
 
-    if (!txnHandler->submitTransaction(txnBin))
+      }
+    }
+    catch(...) {
+      // Query not available
+      xrt_core::message::send(severity_level::info, "XRT", "Unable to query AIE partition information.");
+      return;
+    }
+    uint8_t *txnBin = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
+    // If we haven't properly initialized the transaction handler
+    if (!transactionHandler)
+      return;
+    transactionHandler->setTransactionName("Multi PDI Profile Store Config");
+    if (!transactionHandler->submitTransaction(txnBin))
       return;
 
     std::cout << " 2 Wait for user input " << std::endl;
     std::cin >> a;
     std::cout << " Got input " << a << std::endl;
 
-
     XAie_ClearTransaction(&aieDevInst);
-
-  #if 0
-    try {
-
-      /* Use a container for Debug BO for results to control its lifetime.
-       * The result BO should be deleted after reading out recorded data in
-       * finishFlushDevice so that AIE Profile/Debug Plugins, if enabled,
-       * can use their own Debug BO to capture their data.
-       */
-      mResultBOHolder = new ResultBOContainer(mHwContext, mBufSz);
-
-    } catch (std::exception& e) {
-      std::stringstream msg;
-      msg << "Unable to create result buffer of size "
-          << std::hex << mBufSz << std::dec
-          << " Bytes for Record Timer Values. Cannot get ML Timeline info. " 
-          << e.what() << std::endl;
-      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg.str());
-      return;
-    }
-    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", 
-              "Allocated buffer In MultiPDIProfClientDevImpl::updateDevice");
-  #endif
+    free(colNum); 
   }
 
   void MultiPDIProfClientDevImpl::finishflushDevice(void* /*hwCtxImpl*/)
   {
 #if 0
-    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", 
-              "Using Allocated buffer In MultiPDIProfClientDevImpl::finishflushDevice");
-              
-    mResultBOHolder->syncFromDevice();    
-    uint32_t* ptr = mResultBOHolder->map();
-      
-    boost::property_tree::ptree ptTop;
-    boost::property_tree::ptree ptHeader;
-    boost::property_tree::ptree ptRecordTimerTS;
-
-    // Header for JSON 
-    ptHeader.put("date", xdp::getCurrentDateTime());
-    ptHeader.put("time_created", xdp::getMsecSinceEpoch());
-
-    boost::property_tree::ptree ptSchema;
-    ptSchema.put("major", "1");
-    ptSchema.put("minor", "0");
-    ptSchema.put("patch", "0");
-    ptHeader.add_child("schema_version", ptSchema);
-    ptHeader.put("device", "Client");
-    ptHeader.put("clock_freq_MHz", 1000);
-    ptTop.add_child("header", ptHeader);
-
-    // Record Timer TS in JSON
-    // Assuming correct Stub has been called and Write Buffer contains valid data
-    
-    uint32_t max_count = mBufSz / (2*sizeof(uint32_t));
-    // Each record timer entry has 32bit ID and 32bit AIE Timer low value.
-
-    uint32_t numEntries = max_count;
-    std::stringstream msg;
-    msg << " A maximum of " << numEntries << " record can be accommodated in given buffer of bytes size"
-        << std::hex << mBufSz << std::dec << std::endl;
-    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg.str());
-
-    if (numEntries <= max_count) {
-      for (uint32_t i = 0 ; i < numEntries; i++) {
-        boost::property_tree::ptree ptIdTS;
-        ptIdTS.put("id", *ptr);
-        ptr++;
-        if (0 == *ptr) {
-          // Zero value for Timestamp in cycles indicates end of recorded data
-          std::string msgEntries = " Got " + std::to_string(i) + " records in buffer";
-          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msgEntries);
-          break;
-        }
-        ptIdTS.put("cycle", *ptr);
-        ptr++;
-
-        ptRecordTimerTS.push_back(std::make_pair("", ptIdTS));
-      }
-    }    
-
-    if (ptRecordTimerTS.empty()) {
-      boost::property_tree::ptree ptEmpty;
-      ptRecordTimerTS.push_back(std::make_pair("", ptEmpty));
-    }
-    ptTop.add_child("record_timer_ts", ptRecordTimerTS);
-
-    // Write output file
-    std::ostringstream oss;
-    boost::property_tree::write_json(oss, ptTop);
-
-    // Remove quotes from value strings
-    std::regex reg("\\\"((-?[0-9]+\\.{0,1}[0-9]*)|(null)|())\\\"(?!\\:)");
-    std::string result = std::regex_replace(oss.str(), reg, "$1");
-
-    std::ofstream fOut;
-    fOut.open("record_timer_ts.json");
-    fOut << result;
-    fOut.close();
-
-    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", 
-              "Finished writing record_timer_ts.json in MultiPDIProfClientDevImpl::finishflushDevice");
-
-    /* Delete the result BO so that AIE Profile/Debug Plugins, if enabled,
-     * can use their own Debug BO to capture their data.
-     */
-    delete mResultBOHolder;
-    mResultBOHolder = nullptr;
 #endif
   }
 }
