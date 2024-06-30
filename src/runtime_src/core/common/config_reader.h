@@ -254,6 +254,13 @@ get_ml_timeline_buffer_size()
 }
 
 inline bool
+get_multi_pdi_prof()
+{
+  static bool value = detail::get_bool_value("Debug.multi_pdi_prof",false);
+  return value;
+}
+
+inline bool
 get_profile_api()
 {
   static bool value = detail::get_bool_value("Debug.profile_api", false);
