@@ -102,7 +102,7 @@ namespace xdp {
     XAie_RequestCustomTxnOp(&aieDevInst);  // Merge Sync
     
     auto storeAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
-    aie_profile_op_t* opAddresses;
+    aie_profile_op_t* opAddresses = nullptr;
 
     try {
       auto device = xrt_core::hw_context_int::get_core_device(mHwContext);
