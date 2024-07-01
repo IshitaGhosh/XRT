@@ -91,6 +91,7 @@ namespace xdp {
       return;
     }
 
+    std::vector<profile_data_t> op_profile_data;
     //Start recording the transaction
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
     // Profiling is 3rd custom OP
@@ -114,19 +115,26 @@ namespace xdp {
         xrt_core::message::send(severity_level::info, "XRT", "No AIE partition information found.");
         return;
       }
-
+      // For now assuming only 1
       for (auto& info : aiePartitionInfo) {
         auto startCol = static_cast<uint8_t>(info.start_col);
         xrt_core::message::send(severity_level::info, "XRT",
             "Partition shift of " + std::to_string(startCol) +
             " was found, number of columns: " + std::to_string(info.num_cols));
-        uint32_t* colNum = (uint32_t*)malloc(info.num_col*sizeof(uint32_t));
-        for (uint64_t i = 0; i < info.num_cols; i++) {
-          // call
-          colNum[i] = static_cast<uint32_t>(info.start_col+i);
-          XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)storeAIEConfigOpCode, (void*)colNum[i], sizeof(uint32_t));
-        }
+        // Only for Core Tiles for now
+        size_t opSize = sizeof(aie_profile_op_t) + (sizeof(profile_data_t)*((info.num_cols*4) - 1));
+        aie_profile_op_t* opAddresses = (aie_profile_op_t*)malloc(opSize);
 
+        size_t idx = 0;
+        uint64_t col = info.start_col;
+        for (uint64_t i = 0; i < info.num_cols; i++, col++) {
+          for(uint64_t row = 2; row < 4; row++) {
+            opAddresses.profile_data[idx].perf_address = (col << 25) + (row << 20);
+            idx++;
+          }
+        }
+        XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)storeAIEConfigOpCode, (void*)opAddresses, opSize);
+        break; // For now assuming only 1
       }
     }
     catch(...) {
