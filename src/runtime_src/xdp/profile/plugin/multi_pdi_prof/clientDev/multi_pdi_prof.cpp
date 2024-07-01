@@ -102,7 +102,7 @@ namespace xdp {
     XAie_RequestCustomTxnOp(&aieDevInst);  // Merge Sync
     
     auto saveAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
-    auto restoreAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst)
+    auto restoreAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
     aie_profile_op_t* opAddrForSaveConfig = nullptr;
     aie_profile_op_t* opAddrForRestoreConfig = nullptr;
 
