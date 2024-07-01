@@ -102,6 +102,7 @@ namespace xdp {
     XAie_RequestCustomTxnOp(&aieDevInst);  // Merge Sync
     
     auto storeAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
+    aie_profile_op_t* opAddresses;
 
     try {
       auto device = xrt_core::hw_context_int::get_core_device(mHwContext);
@@ -123,13 +124,13 @@ namespace xdp {
         */
         // Only for Core Tiles for now
         size_t opSize = sizeof(aie_profile_op_t) + (sizeof(profile_data_t)*((info.num_cols*4) - 1));
-        aie_profile_op_t* opAddresses = (aie_profile_op_t*)malloc(opSize);
+        opAddresses = (aie_profile_op_t*)malloc(opSize);
 
         size_t idx = 0;
         uint64_t col = info.start_col;
         for (uint64_t i = 0; i < info.num_cols; i++, col++) {
           for(uint64_t row = 2; row < 4; row++) {
-            opAddresses.profile_data[idx].perf_address = (col << 25) + (row << 20);
+            opAddresses->profile_data[idx].perf_address = (col << 25) + (row << 20);
             idx++;
           }
         }
@@ -139,7 +140,7 @@ namespace xdp {
     }
     catch(...) {
       // Query not available
-      xrt_core::message::send(severity_level::info, "XRT", "Unable to query AIE partition information.");
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "Unable to query AIE partition information.");
       return;
     }
     uint8_t *txnBin = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
@@ -155,7 +156,7 @@ namespace xdp {
     std::cout << " Got input " << a << std::endl;
 
     XAie_ClearTransaction(&aieDevInst);
-    free(colNum); 
+    free(opAddresses);
   }
 
   void MultiPDIProfClientDevImpl::finishflushDevice(void* /*hwCtxImpl*/)
