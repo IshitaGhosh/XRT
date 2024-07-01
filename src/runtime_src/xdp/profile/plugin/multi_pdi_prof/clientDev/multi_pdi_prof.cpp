@@ -16,7 +16,7 @@
 
 #define XDP_PLUGIN_SOURCE
 
-
+#include "core/common/api/hw_context_int.h"
 #include "core/common/device.h"
 #include "core/common/message.h"
 #include "core/common/query.h"
@@ -102,8 +102,6 @@ namespace xdp {
     XAie_RequestCustomTxnOp(&aieDevInst);  // Merge Sync
     
     auto storeAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
-    uint32_t startCol = static_cast<uint32_t>(startCol) 
-    XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)storeAIEConfigOpCode, (void*)&startCol, sizeof(uint32_t));    
 
     try {
       auto device = xrt_core::hw_context_int::get_core_device(mHwContext);
@@ -112,15 +110,17 @@ namespace xdp {
 
       auto aiePartitionInfo = xrt_core::device_query<xrt_core::query::aie_partition_info>(device.get());
       if (aiePartitionInfo.empty()) {
-        xrt_core::message::send(severity_level::info, "XRT", "No AIE partition information found.");
+        xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", "No AIE partition information found.");
         return;
       }
       // For now assuming only 1
       for (auto& info : aiePartitionInfo) {
+        /*
         auto startCol = static_cast<uint8_t>(info.start_col);
-        xrt_core::message::send(severity_level::info, "XRT",
+        xrt_core::message::send(xrt_core::message::severity_level::info, "XRT",
             "Partition shift of " + std::to_string(startCol) +
             " was found, number of columns: " + std::to_string(info.num_cols));
+        */
         // Only for Core Tiles for now
         size_t opSize = sizeof(aie_profile_op_t) + (sizeof(profile_data_t)*((info.num_cols*4) - 1));
         aie_profile_op_t* opAddresses = (aie_profile_op_t*)malloc(opSize);
@@ -144,10 +144,10 @@ namespace xdp {
     }
     uint8_t *txnBin = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
     // If we haven't properly initialized the transaction handler
-    if (!transactionHandler)
+    if (!txnHandler)
       return;
-    transactionHandler->setTransactionName("Multi PDI Profile Store Config");
-    if (!transactionHandler->submitTransaction(txnBin))
+    txnHandler->setTransactionName("Multi PDI Profile Store Config");
+    if (!txnHandler->submitTransaction(txnBin))
       return;
 
     std::cout << " 2 Wait for user input " << std::endl;
