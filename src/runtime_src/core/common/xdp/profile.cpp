@@ -311,17 +311,16 @@ void load()
 void update_device(void* handle)
 {
   if (update_device_cb)
-    update_device_cb(handle)  
+    update_device_cb(handle); 
 }
 
 void finish_flush_bevice(void* handle)
 {
   if (finish_flush_device_cb)
-    finish_flush_device_cb(handle)  
+    finish_flush_device_cb(handle);  
 }
 
 } // end namespace xrt_core::xdp::aie::multi_pdi_prof
-
 
 
 namespace xrt_core::xdp {
