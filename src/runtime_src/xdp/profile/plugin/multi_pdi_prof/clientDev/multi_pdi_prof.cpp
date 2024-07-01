@@ -101,8 +101,10 @@ namespace xdp {
     XAie_RequestCustomTxnOp(&aieDevInst);  // Record Timer
     XAie_RequestCustomTxnOp(&aieDevInst);  // Merge Sync
     
-    auto storeAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
-    aie_profile_op_t* opAddresses = nullptr;
+    auto saveAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst);
+    auto restoreAIEConfigOpCode = XAie_RequestCustomTxnOp(&aieDevInst)
+    aie_profile_op_t* opAddrForSaveConfig = nullptr;
+    aie_profile_op_t* opAddrForRestoreConfig = nullptr;
 
     try {
       auto device = xrt_core::hw_context_int::get_core_device(mHwContext);
@@ -124,17 +126,19 @@ namespace xdp {
         */
         // Only for Core Tiles for now
         size_t opSize = sizeof(aie_profile_op_t) + (sizeof(profile_data_t)*((info.num_cols*4) - 1));
-        opAddresses = (aie_profile_op_t*)malloc(opSize);
+        opAddrForRestoreConfig = (aie_profile_op_t*)malloc(opSize);
 
         size_t idx = 0;
         uint64_t col = info.start_col;
         for (uint64_t i = 0; i < info.num_cols; i++, col++) {
           for(uint64_t row = 2; row < 4; row++) {
-            opAddresses->profile_data[idx].perf_address = (col << 25) + (row << 20);
+            opAddrForSaveConfig->profile_data[idx].perf_address = (col << 25) + (row << 20);
+            opAddrForRestoreConfig->profile_data[idx].perf_address = (col << 25) + (row << 20);
             idx++;
           }
         }
-        XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)storeAIEConfigOpCode, (void*)opAddresses, opSize);
+        XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)saveAIEConfigOpCode, (void*)opAddrForSaveConfig, opSize);
+        XAie_AddCustomTxnOp(&aieDevInst, (uint8_t)restoreAIEConfigOpCode, (void*)opAddrForRestoreConfig, opSize);
         break; // For now assuming only 1
       }
     }
@@ -156,7 +160,10 @@ namespace xdp {
     std::cout << " Got input " << a << std::endl;
 
     XAie_ClearTransaction(&aieDevInst);
-    free(opAddresses);
+    free(opAddrForSaveConfig);
+    free(opAddrForRestoreConfig);
+
+    // Now Restore
   }
 
   void MultiPDIProfClientDevImpl::finishflushDevice(void* /*hwCtxImpl*/)
