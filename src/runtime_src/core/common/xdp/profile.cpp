@@ -288,10 +288,10 @@ void
 register_callbacks(void* handle)
 {
   #ifdef XDP_CLIENT_BUILD
-    using funcType = void(*)(void*);
+    using func_type = void(*)(void*);
 
-    update_device_cb = reinterpret_cast<funcType>(xrt_core::dlsym(handle, "updateDeviceMultiPDI"));
-    finish_flush_device_cb = reinterpret_cast<functype>(xrt_core::dlsym(handle, "finishFlushDeviceMultiPDI"));
+    update_device_cb = reinterpret_cast<func_type>(xrt_core::dlsym(handle, "updateDeviceMultiPDI"));
+    finish_flush_device_cb = reinterpret_cast<func_type>(xrt_core::dlsym(handle, "finishFlushDeviceMultiPDI"));
   #else
     (void)handle;
   #endif
