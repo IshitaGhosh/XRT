@@ -314,7 +314,7 @@ void update_device(void* handle)
     update_device_cb(handle); 
 }
 
-void finish_flush_bevice(void* handle)
+void finish_flush_device(void* handle)
 {
   if (finish_flush_device_cb)
     finish_flush_device_cb(handle);  
