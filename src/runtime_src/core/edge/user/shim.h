@@ -17,6 +17,8 @@
 #include "core/common/shim/hwctx_handle.h"
 #include "core/common/shim/shared_handle.h"
 #include "core/include/xdp/app_debug.h"
+#include "core/common/shim/graph_handle.h"
+#include "core/common/error.h"
 
 #include <cstdint>
 #include <fstream>
@@ -152,88 +154,6 @@ public:
     }
   }; // buffer_object
 
-
-  // Shim handle for hardware context Even as hw_emu does not
-  // support hardware context, it still must implement a shim
-  // hardware context handle representing the default slot
-  class hwcontext : public xrt_core::hwctx_handle
-  {
-    shim* m_shim;
-    xrt::uuid m_uuid;
-    slot_id m_slotidx;
-    xrt::hw_context::access_mode m_mode;
-
-  public:
-    hwcontext(shim* shim, slot_id slotidx, xrt::uuid uuid, xrt::hw_context::access_mode mode)
-      : m_shim(shim)
-      , m_uuid(std::move(uuid))
-      , m_slotidx(slotidx)
-      , m_mode(mode)
-    {}
-
-    void
-    update_access_mode(access_mode mode) override
-    {
-      m_mode = mode;
-    }
-
-    slot_id
-    get_slotidx() const override
-    {
-      return m_slotidx;
-    }
-
-    xrt::hw_context::access_mode
-    get_mode() const
-    {
-      return m_mode;
-    }
-
-    xrt::uuid
-    get_xclbin_uuid() const
-    {
-      return m_uuid;
-    }
-
-    xrt_core::hwqueue_handle*
-    get_hw_queue() override
-    {
-      return nullptr;
-    }
-
-    std::unique_ptr<xrt_core::buffer_handle>
-    alloc_bo(void* userptr, size_t size, uint64_t flags) override
-    {
-      // The hwctx is embedded in the flags, use regular shim path
-      return m_shim->xclAllocUserPtrBO(userptr, size, xcl_bo_flags{flags}.flags);
-    }
-
-    std::unique_ptr<xrt_core::buffer_handle>
-    alloc_bo(size_t size, uint64_t flags) override
-    {
-      // The hwctx is embedded in the flags, use regular shim path
-      return m_shim->xclAllocBO(size, xcl_bo_flags{flags}.flags);
-    }
-
-    xrt_core::cuidx_type
-    open_cu_context(const std::string& cuname) override
-    {
-      return m_shim->open_cu_context(this, cuname);
-    }
-
-    void
-    close_cu_context(xrt_core::cuidx_type cuidx) override
-    {
-      m_shim->close_cu_context(this, cuidx);
-    }
-
-    void
-    exec_buf(xrt_core::buffer_handle* cmd) override
-    {
-      m_shim->xclExecBuf(cmd->get_xcl_handle());
-    }
-  }; // class hwcontext
-
   ~shim();
   shim(unsigned index);
 
@@ -350,7 +270,7 @@ public:
 
 #ifdef XRT_ENABLE_AIE
   zynqaie::Aie* getAieArray();
-  zynqaie::Aied* getAied();
+  zynqaie::aied* getAied();
   int getBOInfo(drm_zocl_info_bo &info);
   void registerAieArray();
   bool isAieRegistered();
@@ -385,7 +305,7 @@ private:
 
 #ifdef XRT_ENABLE_AIE
   std::unique_ptr<zynqaie::Aie> aieArray;
-  std::unique_ptr<zynqaie::Aied> aied;
+  std::unique_ptr<zynqaie::aied> aied;
   xrt::aie::access_mode access_mode = xrt::aie::access_mode::none;
 #endif
 };
