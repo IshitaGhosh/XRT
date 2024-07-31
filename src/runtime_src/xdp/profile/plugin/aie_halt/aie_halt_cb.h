@@ -21,8 +21,8 @@
 
 extern "C" {
 
-  XDP_PLUGIN_EXPORT void updateDeviceAiehalt(void* hwCtxImpl);
-  XDP_PLUGIN_EXPORT void finishflushDeviceAiehalt(void* hwCtxImpl);
+  XDP_PLUGIN_EXPORT void updateDeviceAieHalt(void* hwCtxImpl);
+  XDP_PLUGIN_EXPORT void finishflushDeviceAieHalt(void* hwCtxImpl);
 
 }
 #endif
