@@ -19,8 +19,11 @@
 #include "core/common/device.h"
 #include "core/common/message.h"
 
+#include "xdp/profile/database/database.h"
 #include "xdp/profile/device/common/client_transaction.h"
 #include "xdp/profile/plugin/aie_halt/clientDev/aie_halt.h"
+#include "xdp/profile/database/static_info/aie_constructs.h"
+#include "xdp/profile/database/static_info/filetypes/base_filetype_impl.h"
 #include "xdp/profile/plugin/vp_base/utility.h"
 
 extern "C" {
@@ -47,8 +50,38 @@ namespace xdp {
         = std::make_unique<aie::ClientTransaction>(mHwContext, "AIE Halt");
     if (!txnHandler->initializeKernel("XDP_KERNEL"))
       return;
-    
+
+    if (!txnHandler->initializeKernel("XDP_KERNEL"))
+      return;
+
+    const aie::BaseFiletypeImpl* metadataReader = (db->getStaticInfo()).getAIEmetadataReader();
+    if (!metadataReader)
+      return;
+
+    xdp::aie::driver_config meta_config = metadataReader->getDriverConfig();
+
+    XAie_Config cfg {
+      meta_config.hw_gen,
+      meta_config.base_address,
+      meta_config.column_shift,
+      meta_config.row_shift,
+      meta_config.num_rows,
+      meta_config.num_columns,
+      meta_config.shim_row,
+      meta_config.mem_row_start,
+      meta_config.mem_num_rows,
+      meta_config.aie_tile_row_start,
+      meta_config.aie_tile_num_rows,
+      {0} // PartProp
+    };
+
     XAie_DevInst aieDevInst = {0};
+    auto RC = XAie_CfgInitialize(&aieDevInst, &cfg);
+    if (RC != XAIE_OK) {
+      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "AIE Driver Initialization Failed.");
+      return;
+    }
+       
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
 
     XAie_CoreDebugHalt(&aieDevInst, XAie_TileLoc(0, 2));
