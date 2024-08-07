@@ -351,12 +351,25 @@ namespace xdp {
     auto resultBOMap = resultBO.map<uint8_t*>();
     uint32_t* output = reinterpret_cast<uint32_t*>(resultBOMap);
 
-    for (uint32_t i = 0; i < op->count; i++) {
+    std::cout << "Raw data: From Txn Binary" << std::endl;
+    for (uint32_t i = 0; i < 16; i++) {
+      std::cout << i << " " << output[i] << std::endl;
+    }
+    std::cout << "Raw data2: From AIE Profile" << std::endl;
+    for (uint32_t i = 16; i < (op->count+16); i++) {
+      std::cout << i << " " << output[i] << std::endl;
+    }
+    std::cout << "Raw data3: Beyond written data" << std::endl;
+    for (uint32_t i = op->count + 16; i < op->count + 32; i++) {
+      std::cout << i << " " << output[i] << std::endl;
+    }
+
+    for (uint32_t i = 0 ; i < op->count; i++) {
       std::stringstream msg;
-      msg << "Counter address/values: 0x" << std::hex << op->data[i].address << ": " << std::dec << output[i];
+      msg << "Counter address/values: 0x" << std::hex << op->data[i].address << ": " << std::dec << output[i+16];
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg.str());
       std::vector<uint64_t> values = outputValues[i];
-      values[5] = static_cast<uint64_t>(output[i]); //write pc value
+      values[5] = static_cast<uint64_t>(output[i+16]); //write pc value
       db->getDynamicInfo().addAIESample(index, timestamp, values);
     }
 
