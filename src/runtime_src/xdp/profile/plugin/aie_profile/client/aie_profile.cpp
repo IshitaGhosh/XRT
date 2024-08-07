@@ -40,7 +40,6 @@
 #include "xdp/profile/plugin/vp_base/info.h"
 
 // XRT headers
-#include "xrt/xrt_bo.h"
 #include "core/common/shim/hwctx_handle.h"
 #include <windows.h> 
 
@@ -250,6 +249,16 @@ namespace xdp {
 
     // Must clear aie state
     XAie_ClearTransaction(&aieDevInst);
+
+    auto context = metadata->getHwContext();
+    try {
+      resultBO = xrt_core::bo_int::create_debug_bo(context, 0x20000);
+    } catch (std::exception& e) {
+      std::stringstream msg;
+      msg << "Unable to create 128KB buffer for AIE Profile results. Cannot get AIE Profile info. " << e.what() << std::endl;
+      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg.str());
+      return runtimeCounters;
+    }
     return runtimeCounters;
   }
 
@@ -308,6 +317,7 @@ namespace xdp {
       xrt_core::message::send(severity_level::debug, "XRT", "Done reading recorded timestamps.");
     }
 
+#if 0
     auto context = metadata->getHwContext();
     xrt::bo resultBO;
     try {
@@ -318,6 +328,7 @@ namespace xdp {
       xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg.str());
       return;
     }
+#endif
 
     (void)handle;
     double timestamp = xrt_core::time_ns() / 1.0e6;

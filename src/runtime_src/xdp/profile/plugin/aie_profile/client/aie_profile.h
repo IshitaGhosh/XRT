@@ -25,6 +25,8 @@
 #include "xdp/profile/plugin/aie_profile/aie_profile_impl.h"
 #include "xdp/profile/device/common/client_transaction.h"
 
+#include "xrt/xrt_bo.h"
+
 extern "C" {
 #include <xaiengine.h>
 #include <xaiengine/xaiegbl_params.h>
@@ -76,6 +78,8 @@ namespace xdp {
       XAie_DevInst aieDevInst = {0};
       std::vector<std::vector<uint64_t>> outputValues;
       bool finishedPoll = false;
+
+      xrt::bo resultBO;
 
   };
 
