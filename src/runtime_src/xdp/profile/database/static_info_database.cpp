@@ -2392,12 +2392,15 @@ namespace xdp {
   {
     // Check for new then old file formats
     metadataReader = aie::readAIEMetadata("aie_trace_config.json", aieMetadata);
-    if (!metadataReader) {
+    if (metadataReader) {
+      aieMetadata.put("type", "AIE_TRACE_METADATA");
+    } else {
       metadataReader = aie::readAIEMetadata("aie_control_config.json", aieMetadata);
       if (!metadataReader) {
         xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "AIE metadata read failed on client!");
         return;
       }
+      aieMetadata.put("type", "AIE_METADATA");
     }
     xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AIE metadata read successfully on client!");
   } 
@@ -2414,6 +2417,9 @@ namespace xdp {
       data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
       if (!data.first || !data.second)
         return;
+      aieMetadata.put("type", "AIE_METADATA");
+    } else {
+      aieMetadata.put("type", "AIE_TRACE_METADATA");
     }
 
     metadataReader = aie::readAIEMetadata(data.first, data.second, aieMetadata);
