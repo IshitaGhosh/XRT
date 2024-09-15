@@ -75,9 +75,9 @@ namespace xdp::aie {
     // aie_trace_config.json format
     try {
       int majorVersion = aie_project.get("schema_version.major", 1);
-      std::string type = aie_project.get("type");
+      std::string type = aie_project.get<std::string>("type");
       xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", type);
-      if (2 != majorVersion && 0 == aie_project.get("type").compare("AIE_TRACE_METADATA")) {
+      if (2 != majorVersion && 0 == aie_project.get<std::string>("type").compare("AIE_TRACE_METADATA")) {
         std::stringstream msg;
         msg << " AIE Trace Metadata with major version " << majorVersion
             << " is not supported. Profiling and trace features might not work." << std::endl;
