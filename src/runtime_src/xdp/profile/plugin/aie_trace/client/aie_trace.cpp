@@ -1017,12 +1017,21 @@ namespace xdp {
     boost::property_tree::ptree aiePartitionPt = xdp::aie::getAIEPartitionInfoClient(hwCtxImpl);
     // Currently, assuming only one Hw Context is alive at a time
     uint8_t startCol = static_cast<uint8_t>(aiePartitionPt.front().second.get<uint64_t>("start_col"));
+    uint8_t numCols  = static_cast<uint8_t>(aiePartitionPt.front().second.get<uint64_t>("num_cols"));
 
     std::string startType = xrt_core::config::get_aie_trace_settings_start_type();
     unsigned int startLayer = xrt_core::config::get_aie_trace_settings_start_layer();
     
     //Start recording the transaction
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
+
+    // Reset timer
+    for (uint8_t c = startCol ; c < (startCol + numCols) ; c++ ) {
+      for (uint8_t r = 0; r < 6 ; r++) {
+        auto regAddr = _XAie_GetTileAddr(&aieDevInst, r, c) + 0x00034000;
+        XAie_Write32(&aieDevInst, regAddr, 0x80000000);
+      }
+    }
 
     if (!metadata->getIsValidMetrics()) {
       std::string msg("AIE trace metrics were not specified in xrt.ini. AIE event trace will not be available.");

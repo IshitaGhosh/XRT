@@ -278,6 +278,13 @@ namespace xdp {
       msg << "Debug tile (" << col << ", " << row << ") "
           << "hex address/values: " << std::hex << reg << " : "
           << output[i] << std::dec;
+      if (0 != i) {
+        if (output[i] > output[i-1]) {
+          msg << " ::  Diff in value from previous timer " << (output[i] - output[i-1]) << std::endl;
+        } else {
+          msg << " ::  Diff in value from previous timer " << (output[i-1] - output[i]) << std::endl;
+        }
+      }
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg.str());
     }
   }
