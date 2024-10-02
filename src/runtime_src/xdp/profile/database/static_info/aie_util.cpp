@@ -404,6 +404,7 @@ namespace xdp::aie {
         boost::property_tree::ptree pt;
         pt.put("start_col", e.start_col);
         pt.put("num_cols", e.num_cols);
+        pt.put("context_id", std::stoul(e.metadata.id, nullptr, 10));
         infoPt.push_back(std::make_pair("", pt));
       }
     }

@@ -30,7 +30,7 @@
 #include "xdp/profile/database/database.h"
 #include "xdp/profile/database/static_info/aie_util.h"
 #include "xdp/profile/database/static_info/aie_constructs.h"
-#include "xdp/profile/device/common/client_transaction.h"
+//#include "xdp/profile/device/common/client_transaction.h"
 #include "xdp/profile/plugin/aie_access/clientDev/aie_access.h"
 #include "xdp/profile/plugin/vp_base/utility.h"
 
@@ -52,11 +52,12 @@ namespace xdp {
     auto device = xrt_core::hw_context_int::get_core_device(mHwContext);
     auto aieDevice = std::make_unique<xrt::aie::device>(0);
 
-    uint64_t ctxId = 0, col = 0, row = 0, startCol = 0, numCols = 0, offset = 0;
+    uint64_t ctxId = 0, col = 0, row = 0, offset = 0;
+    //uint64_t startCol = 0, numCols = 0;
     boost::property_tree::ptree aiePartitionPt = xdp::aie::getAIEPartitionInfoClient(hwCtxImpl);
     for (const auto& e : aiePartitionPt) {
-      startCol = e.second.get<uint64_t>("start_col");
-      numCols  = e.second.get<uint64_t>("num_cols");
+      //startCol = e.second.get<uint64_t>("start_col");
+      //numCols  = e.second.get<uint64_t>("num_cols");
       ctxId = e.second.get<uint64_t>("context_id");
       // Currently, assuming only one Hw Context is alive at a time
       break;
