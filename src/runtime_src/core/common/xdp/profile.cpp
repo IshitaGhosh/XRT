@@ -181,6 +181,52 @@ finish_flush_device(void* handle)
 
 } // end namespace xrt_core::xdp::ml_timeline
 
+namespace xrt_core::xdp::aie::access {
+
+std::function<void (void*)> update_device_cb;
+std::function<void (void*)> finish_flush_device_cb;
+
+void
+register_callbacks(void* handle)
+{ 
+  #ifdef XDP_CLIENT_BUILD
+    update_device_cb = reinterpret_cast<void (*)(void*)>(xrt_core::dlsym(handle, "updateDeviceAIEAccess"));
+    finish_flush_device_cb = reinterpret_cast<void (*)(void*)>(xrt_core::dlsym(handle, "finishflushDeviceAIEAccess"));
+  #else
+    (void)handle;
+  #endif
+
+}
+
+void
+warning_callbacks()
+{}
+
+void
+load()
+{
+  static xrt_core::module_loader xdp_aie_access_loader("xdp_aie_access_plugin",
+                                                register_callbacks,
+                                                warning_callbacks);
+}
+
+void
+update_device(void* handle)
+{
+  if (update_device_cb)
+    update_device_cb(handle);
+}
+
+void
+finish_flush_device(void* handle)
+{
+  if (finish_flush_device_cb)
+    finish_flush_device_cb(handle);
+}
+
+} // end namespace xrt_core::xdp::aie::access
+
+
 namespace xrt_core::xdp::pl_deadlock {
 
 std::function<void (void*)> update_device_cb;
@@ -338,6 +384,7 @@ update_device(void* handle)
       || xrt_core::config::get_aie_profile()
       || xrt_core::config::get_aie_trace()
       || xrt_core::config::get_aie_debug()
+      || xrt_core::config::get_aie_access()
       || xrt_core::config::get_aie_halt()) {
     /* All the above plugins are dependent on xdp_core library. So,
      * explicitly load it to avoid library search issue in implicit loading.
@@ -357,6 +404,16 @@ update_device(void* handle)
       return;
     }
     xrt_core::xdp::aie::halt::update_device(handle);
+  }
+
+  if (xrt_core::config::get_aie_access()) {
+    try {
+      xrt_core::xdp::aie::access::load();
+    } 
+    catch (...) {
+      return;
+    }
+    xrt_core::xdp::aie::access::update_device(handle);
   }
 
   if (xrt_core::config::get_aie_profile()) {
@@ -429,6 +486,8 @@ finish_flush_device(void* handle)
     xrt_core::xdp::aie::trace::end_trace(handle);
   if (xrt_core::config::get_aie_debug())
     xrt_core::xdp::aie::debug::end_debug(handle);
+  if (xrt_core::config::get_aie_access())
+    xrt_core::xdp::aie::access::finish_flush_device(handle);
   if (xrt_core::config::get_ml_timeline())
     xrt_core::xdp::ml_timeline::finish_flush_device(handle);
 
