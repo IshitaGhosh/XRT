@@ -158,7 +158,8 @@ while [ $# -gt 0 ]; do
             ;;
 	-noalveo)
             shift
-	    alveo=0
+	        alveo=0
+            cmake_flags+=" -DXDP_CLIENT_BUILD_CMAKE=yes"
             ;;
         -opt)
             dbg=0
