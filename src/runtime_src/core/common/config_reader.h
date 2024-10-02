@@ -262,6 +262,20 @@ get_aie_halt()
 }
 
 inline bool
+get_aie_access()
+{
+  static bool value = detail::get_bool_value("Debug.aie_access",false);
+  return value;
+}
+
+inline std::string
+get_aie_access_settings()
+{
+  static std::string value = detail::get_string_value("AIE_access_settings.addresses", "");
+  return value;
+}
+
+inline bool
 get_profile_api()
 {
   static bool value = detail::get_bool_value("Debug.profile_api", false);
