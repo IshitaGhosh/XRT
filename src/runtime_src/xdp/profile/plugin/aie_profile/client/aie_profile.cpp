@@ -363,4 +363,25 @@ namespace xdp {
   {
     
   }
+
+  void AieProfile_WinImpl::scheduleConfigTxn(void* /*hwCtxImpl*/, uint64_t pdiId)
+  {
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In AieProfile_WinImpl::scheduleConfigTxn");
+    if (currPDI == pdiId) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", " In Profile:schedule config : pdi id matches :: no need to send txn ");
+       return;
+    }
+    currPDI = pdiId;
+  }
+
+  void AieProfile_WinImpl::scheduleDataFlushTxn(void* /*hwCtxImpl*/, uint64_t pdiId)
+  {
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In AieProfile_WinImpl::scheduleDataFlushTxn");
+    if (currPDI == pdiId) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", " In Profile:schedule data flush : pdi id matches :: no need to send txn ");
+      return;
+    }
+    // dont save yet// currPDI = pdiId;
+  }
+
 }  // namespace xdp

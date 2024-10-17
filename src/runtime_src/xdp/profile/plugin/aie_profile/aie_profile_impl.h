@@ -44,6 +44,9 @@ namespace xdp {
     virtual void updateDevice() = 0;
     virtual void poll(const uint32_t index, void* handle) = 0;
     virtual void freeResources() = 0;
+
+    virtual void scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId) = 0;
+    virtual void scheduleDataFlushTxn(void* hwCtxImpl, uint64_t pdiId) = 0;
   };
 
 } // namespace xdp

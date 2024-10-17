@@ -18,6 +18,7 @@
 #define XDP_PLUGIN_AIE_PROFILE_CB_H
 
 #include "xdp/config.h"
+#include <cstdint>
 
 extern "C"
 XDP_PLUGIN_EXPORT
@@ -26,5 +27,13 @@ void updateAIECtrDevice(void* handle);
 extern "C"
 XDP_PLUGIN_EXPORT
 void endAIECtrPoll(void* handle);
+
+extern "C"
+XDP_PLUGIN_EXPORT
+void scheduleConfigTxn(void* handle, uint64_t pdiId);
+
+extern "C"
+XDP_PLUGIN_EXPORT
+void scheduleDataFlushTxn(void* handle, uint64_t pdiId);
 
 #endif

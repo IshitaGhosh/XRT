@@ -37,6 +37,9 @@ namespace xdp {
     AieProfile_WinImpl(VPDatabase* database, std::shared_ptr<AieProfileMetadata> metadata);
     ~AieProfile_WinImpl() = default;
 
+    virtual void scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId);
+    virtual void scheduleDataFlushTxn(void* hwCtxImpl, uint64_t pdiId);
+
     void updateDevice();
     void poll(const uint32_t index, void* handle);
     void freeResources();
@@ -76,6 +79,8 @@ namespace xdp {
       XAie_DevInst aieDevInst = {0};
       std::vector<std::vector<uint64_t>> outputValues;
       bool finishedPoll = false;
+
+      uint64_t currPDI = 0;
 
   };
 

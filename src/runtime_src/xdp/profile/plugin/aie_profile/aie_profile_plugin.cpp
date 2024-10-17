@@ -298,4 +298,39 @@ auto time = std::time(nullptr);
         break;
      }
   }
+
+  void AieProfilePlugin::scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId)
+  {
+    xrt_core::message::send(severity_level::debug, "XRT", "Calling AIE Profile schedule config.");
+    if (handleToAIEData.empty())
+      return;
+
+    auto& AIEData = handleToAIEData[hwCtxImpl];
+    if(!AIEData.valid) {
+      return;
+    }
+
+    #ifdef XDP_CLIENT_BUILD
+      AIEData.implementation->scheduleConfigTxn(hwCtxImpl, pdiId);
+    #endif
+
+  }
+
+  void AieProfilePlugin::scheduleDataFlushTxn(void* hwCtxImpl, uint64_t pdiId)
+  {
+    xrt_core::message::send(severity_level::debug, "XRT", "Calling AIE Profile schedule data flush.");
+    if (handleToAIEData.empty())
+      return;
+
+    auto& AIEData = handleToAIEData[hwCtxImpl];
+    if(!AIEData.valid) {
+      return;
+    }
+
+    #ifdef XDP_CLIENT_BUILD
+      AIEData.implementation->scheduleDataFlushTxn(hwCtxImpl, pdiId);
+    #endif
+
+  }
+
 }  // end namespace xdp

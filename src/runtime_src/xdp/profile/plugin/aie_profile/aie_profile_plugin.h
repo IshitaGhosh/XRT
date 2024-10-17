@@ -31,6 +31,10 @@ namespace xdp {
     ~AieProfilePlugin();
     void updateAIEDevice(void* handle);
     void endPollforDevice(void* handle);
+
+    void scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId);
+    void scheduleDataFlushTxn(void* hwCtxImpl, uint64_t pdiId);
+    
     static bool alive();
     void broadcast(VPDatabase::MessageType msg, void* blob);
 
