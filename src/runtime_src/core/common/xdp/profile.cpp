@@ -39,14 +39,20 @@ namespace xrt_core::xdp::aie::profile {
 std::function<void (void*)> update_device_cb;
 std::function<void (void*)> end_poll_cb;
 
+std::function<void (void*, uint64_t)> schedule_config_txn_cb;
+std::function<void (void*, uint64_t)> schedule_dataflush_txn_cb;
+
 void 
 register_callbacks(void* handle)
 {  
   #ifdef XDP_CLIENT_BUILD
     using ftype = void (*)(void*);
+    using ftype2 = void (*)(void*, uint64_t);
 
     update_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "updateAIECtrDevice"));
     end_poll_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "endAIECtrPoll"));
+    schedule_config_txn_cb = reinterpret_cast<ftype2>(xrt_core::dlsym(handle, "scheduleConfigTxn"));
+    schedule_dataflush_txn_cb = reinterpret_cast<ftype2>(xrt_core::dlsym(handle, "scheduleDataFlushTxn"));
   #else 
     (void)handle;
   #endif
@@ -81,6 +87,20 @@ end_poll(void* handle)
     end_poll_cb(handle);
 }
 
+void 
+schedule_config_txn(void* handle, uint64_t pdiId)
+{
+  if (schedule_config_txn_cb)
+    schedule_config_txn_cb(handle, pdiId);
+}
+
+void 
+schedule_dataflush_txn(void* handle, uint64_t pdiId)
+{
+  if (schedule_dataflush_txn_cb)
+    schedule_dataflush_txn_cb(handle, pdiId);
+}
+
 } // end namespace xrt_core::xdp::aie::profile
 
 namespace xrt_core::xdp::aie::debug {
@@ -88,14 +108,20 @@ namespace xrt_core::xdp::aie::debug {
 std::function<void (void*)> update_device_cb;
 std::function<void (void*)> end_debug_cb;
 
+std::function<void (void*, uint64_t)> schedule_config_txn_cb;
+std::function<void (void*, uint64_t)> schedule_dataflush_txn_cb;
+
 void 
 register_callbacks(void* handle)
 {  
   #ifdef XDP_CLIENT_BUILD
     using ftype = void (*)(void*);
+    using ftype2 = void (*)(void*, uint64_t);
 
     end_debug_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "endAIEDebugRead"));
     update_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "updateAIEDebugDevice"));
+    schedule_config_txn_cb = reinterpret_cast<ftype2>(xrt_core::dlsym(handle, "scheduleConfigTxn"));
+    schedule_dataflush_txn_cb = reinterpret_cast<ftype2>(xrt_core::dlsym(handle, "scheduleDataFlushTxn"));
   #else 
     (void)handle;
   #endif
@@ -129,6 +155,20 @@ end_debug(void* handle)
     end_debug_cb(handle);
 }
 
+void 
+schedule_config_txn(void* handle, uint64_t pdiId)
+{
+  if (schedule_config_txn_cb)
+    schedule_config_txn_cb(handle, pdiId);
+}
+
+void 
+schedule_dataflush_txn(void* handle, uint64_t pdiId)
+{
+  if (schedule_dataflush_txn_cb)
+    schedule_dataflush_txn_cb(handle, pdiId);
+}
+
 } // end namespace xrt_core::xdp::aie::debug
 
 
@@ -137,14 +177,20 @@ namespace xrt_core::xdp::ml_timeline {
 std::function<void (void*)> update_device_cb;
 std::function<void (void*)> finish_flush_device_cb;
 
+std::function<void (void*, uint64_t)> schedule_config_txn_cb;
+std::function<void (void*, uint64_t)> schedule_dataflush_txn_cb;
+
 void
 register_callbacks(void* handle)
 { 
   #ifdef XDP_CLIENT_BUILD
     using ftype = void (*)(void*);
+    using ftype2 = void (*)(void*, uint64_t);
 
     update_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "updateDeviceMLTmln"));
     finish_flush_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "finishflushDeviceMLTmln"));
+    schedule_config_txn_cb = reinterpret_cast<ftype2>(xrt_core::dlsym(handle, "scheduleConfigTxn"));
+    schedule_dataflush_txn_cb = reinterpret_cast<ftype2>(xrt_core::dlsym(handle, "scheduleDataFlushTxn"));
   #else
     (void)handle;
   #endif
@@ -177,6 +223,20 @@ finish_flush_device(void* handle)
 {
   if (finish_flush_device_cb)
     finish_flush_device_cb(handle);
+}
+
+void 
+schedule_config_txn(void* handle, uint64_t pdiId)
+{
+  if (schedule_config_txn_cb)
+    schedule_config_txn_cb(handle, pdiId);
+}
+
+void 
+schedule_dataflush_txn(void* handle, uint64_t pdiId)
+{
+  if (schedule_dataflush_txn_cb)
+    schedule_dataflush_txn_cb(handle, pdiId);
 }
 
 } // end namespace xrt_core::xdp::ml_timeline
@@ -501,6 +561,34 @@ finish_flush_device(void* handle)
     xrt_core::xdp::pl_deadlock::finish_flush_device(handle);
   }
 #endif
+}
+
+
+void
+schedule_config_txn(void* handle, uint64_t pdiId)
+{
+  if (xrt_core::config::get_aie_profile())
+    xrt_core::xdp::aie::profile::schedule_config_txn(handle, pdiId);
+  
+  if (xrt_core::config::get_ml_timeline())
+    xrt_core::xdp::ml_timeline::schedule_config_txn(handle, pdiId);
+
+  if (xrt_core::config::get_aie_debug())
+    xrt_core::xdp::aie::debug::schedule_config_txn(handle, pdiId);
+
+}
+
+void
+schedule_dataflush_txn(void* handle, uint64_t pdiId)
+{
+  if (xrt_core::config::get_aie_profile())
+    xrt_core::xdp::aie::profile::schedule_dataflush_txn(handle, pdiId);
+
+  if (xrt_core::config::get_ml_timeline())
+    xrt_core::xdp::ml_timeline::schedule_dataflush_txn(handle, pdiId);
+    
+  if (xrt_core::config::get_aie_debug())
+    xrt_core::xdp::aie::debug::schedule_dataflush_txn(handle, pdiId);
 }
 
 } // end namespace xrt_core::xdp

@@ -3,6 +3,8 @@
 #ifndef CORE_COMMON_PROFILE_DOT_H
 #define CORE_COMMON_PROFILE_DOT_H
 
+#include <cstdint>
+
 // The functions here are the general interfaces for the XDP hooks that are
 // called from the common coreutil library and not the specific shims.
 namespace xrt_core::xdp {
@@ -20,6 +22,13 @@ update_device(void* handle);
 // the device is reset and the data is wiped.
 void 
 finish_flush_device(void* handle);
+
+
+void
+schedule_config_txn(void*, uint64_t pdiId = 0);
+
+void
+schedule_dataflush_txn(void*, uint64_t pdiId = 0);
 
 } // end namespace xrt_core::xdp
 
