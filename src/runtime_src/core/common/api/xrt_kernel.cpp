@@ -13,6 +13,8 @@
 #include "core/common/shim/buffer_handle.h"
 #include "core/common/shim/hwctx_handle.h"
 
+#include "core/common/xdp/profile.h"
+
 #include "core/include/xrt/xrt_hw_context.h"
 #include "core/include/experimental/xrt_ext.h"
 #include "core/include/experimental/xrt_mailbox.h"
@@ -2374,14 +2376,14 @@ public:
   virtual void
   start()
   {
-    std::string kernelName = "run_impl start execbuf : name " + kernel.get()->get_name();
-    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", s.c_str());
+    std::string msg = "run_impl start execbuf : name " + kernel.get()->get_name();
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg.c_str());
     if (m_runlist) {
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", " Still landed up in m_runlist true");
       throw xrt_core::error("Run object belongs to a runlist and cannot be explicitly started");
     }
     xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "before prep_start");
-    if (!kernelName.empty() && 0 != kernel.get()->get_name().compare("XDP_KERNEL")) {
+    if (0 != kernel.get()->get_name().compare("XDP_KERNEL")) {
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "SCHEDULE TXN before prep_start");
       xrt_core::xdp::schedule_dataflush_txn(nullptr);
       xrt_core::xdp::schedule_config_txn(nullptr);
