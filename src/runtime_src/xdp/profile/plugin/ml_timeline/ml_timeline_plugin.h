@@ -36,6 +36,9 @@ namespace xdp {
     void finishflushDevice(void* hwCtxImpl);
     void writeAll(bool openNewFiles);
 
+    void scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId);
+    void scheduleDataFlushTxn(void* hwCtxImpl, uint64_t pdiId);
+
     virtual void broadcast(VPDatabase::MessageType, void*);
 
     static bool alive();

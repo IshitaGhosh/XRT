@@ -192,5 +192,116 @@ namespace xdp {
      */
     mResultBOHolder.reset(nullptr);
   }
+
+  void MLTimelineClientDevImpl::scheduleConfigTxn(void* /*hwCtxImpl*/, uint64_t pdiId)
+  {
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In MLTimelineClientDevImpl::scheduleConfigTxn");
+    if (currPDI == pdiId) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", " In ML Timeline:schedule config : pdi id matches :: no need to send txn ");
+      return;
+    }
+    currPDI = pdiId;
+
+  }
+
+  void MLTimelineClientDevImpl::scheduleDataFlushTxn(void* /*hwCtxImpl*/, uint64_t implId, uint64_t pdiId)
+  {
+    if (currPDI == pdiId) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", " In ML Timeline : schedule Dataflush : pdi id matches :: no need to send txn ");
+      return;
+    }
+    // dont save yet // currPDI = pdiId;
+
+    static int count = 0;
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In MLTimelineClientDevImpl::scheduleDataFlushTxn");
+
+    mResultBOHolder->syncFromDevice();    
+    uint32_t* ptr = mResultBOHolder->map();
+      
+    boost::property_tree::ptree ptTop;
+    boost::property_tree::ptree ptHeader;
+    boost::property_tree::ptree ptRecordTimerTS;
+
+    // Header for JSON 
+    ptHeader.put("date", xdp::getCurrentDateTime());
+    ptHeader.put("time_created", xdp::getMsecSinceEpoch());
+
+    boost::property_tree::ptree ptSchema;
+    ptSchema.put("major", "1");
+    ptSchema.put("minor", "0");
+    ptSchema.put("patch", "0");
+    ptHeader.add_child("schema_version", ptSchema);
+    ptHeader.put("device", "Client");
+    ptHeader.put("clock_freq_MHz", 1000);
+    ptTop.add_child("header", ptHeader);
+
+    // Record Timer TS in JSON
+    // Assuming correct Stub has been called and Write Buffer contains valid data
+    
+    uint32_t max_count = mBufSz / (3*sizeof(uint32_t));
+    // Each record timer entry has 32bit ID and 32bit AIE High Timer + 32bit AIE Low Timer value.
+
+    uint32_t numEntries = max_count;
+    std::stringstream msg;
+    msg << "A maximum of " << numEntries << " record can be accommodated in given buffer of bytes size 0x"
+        << std::hex << mBufSz << std::dec << std::endl;
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg.str());
+
+    if (numEntries <= max_count) {
+      for (uint32_t i = 0 ; i < numEntries; i++) {
+        boost::property_tree::ptree ptIdTS;
+        uint32_t id = *ptr;
+        ptIdTS.put("id", *ptr);
+        ptr++;
+
+        uint64_t ts64 = *ptr;
+        ts64 = ts64 << 32;
+        ptr++;
+        ts64 |= (*ptr);
+        if (0 == ts64 && 0 == id) {
+          // Zero value for Timestamp in cycles (and id too) indicates end of recorded data
+          std::string msgEntries = "Got " + std::to_string(i) + " records in buffer.";
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msgEntries);
+          break;
+        }
+        ptIdTS.put("cycle", ts64);
+        ptr++;
+
+        ptRecordTimerTS.push_back(std::make_pair("", ptIdTS));
+      }
+    }    
+
+    if (ptRecordTimerTS.empty()) {
+      boost::property_tree::ptree ptEmpty;
+      ptRecordTimerTS.push_back(std::make_pair("", ptEmpty));
+    }
+    ptTop.add_child("record_timer_ts", ptRecordTimerTS);
+
+    // Write output file
+    std::ostringstream oss;
+    boost::property_tree::write_json(oss, ptTop);
+
+    // Remove quotes from value strings
+    std::regex reg("\\\"((-?[0-9]+\\.{0,1}[0-9]*)|(null)|())\\\"(?!\\:)");
+    std::string result = std::regex_replace(oss.str(), reg, "$1");
+
+    std::string outFName;
+    if (0 == implId) {
+      outFName = "record_timer_ts_300_" + std::to_string(count) + ".json";
+    } else {
+      outFName = "record_timer_ts_" + std::to_string(implId+300) + "_" + std::to_string(count) + ".json";
+    }
+    std::ofstream fOut;
+    fOut.open(outFName);
+    fOut << result;
+    fOut.close();
+
+    std::stringstream msg1;
+    msg1 << "Finished writing " << outFName << " in MLTimelineClientDevImpl::finishflushDevice." << std::endl;
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg1.str());
+    count++;
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In MLTimelineClientDevImpl::scheduleDataFlushTxn");
+  }
+
 }
 

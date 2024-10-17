@@ -40,6 +40,8 @@ namespace xdp {
 
       virtual void updateDevice(void*) = 0;
       virtual void finishflushDevice(void*, uint64_t) = 0;
+      virtual void scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId) = 0;
+      virtual void scheduleDataFlushTxn(void* hwCtxImpl, uint64_t implId, uint64_t pdiId) = 0;
 
       void setBufSize(uint32_t sz)
       {

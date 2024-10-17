@@ -33,6 +33,8 @@ namespace xdp {
 
       virtual void updateDevice(void* hwCtxImpl);
       virtual void finishflushDevice(void* hwCtxImpl, uint64_t implId = 0);
+      virtual void scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId);
+      virtual void scheduleDataFlushTxn(void* hwCtxImpl, uint64_t implId, uint64_t pdiId);
   };
 
 }

@@ -35,9 +35,33 @@ namespace xdp {
     if (MLTimelinePlugin::alive()) {
       mlTimelinePluginInstance.finishflushDevice(hwCtxImpl);
     } 
+  }
+
+  static void scheduleConfigTxn(void* handle, uint64_t pdiId)
+  {
+    if (MLTimelinePlugin::alive())
+      mlTimelinePluginInstance.scheduleConfigTxn(handle, pdiId);
+  }
+
+  static void scheduleDataFlushTxn(void* handle, uint64_t pdiId)
+  {
+    if (MLTimelinePlugin::alive())
+      mlTimelinePluginInstance.scheduleDataFlushTxn(handle, pdiId);
   } 
 
 } // end namespace xdp
+
+extern "C"
+void scheduleConfigTxn(void* handle, uint64_t pdiId)
+{
+  xdp::scheduleConfigTxn(handle, pdiId);
+}
+
+extern "C"
+void scheduleDataFlushTxn(void* handle, uint64_t pdiId)
+{
+  xdp::scheduleDataFlushTxn(handle, pdiId);
+}
 
 extern "C"
 void updateDeviceMLTmln(void* hwCtxImpl)

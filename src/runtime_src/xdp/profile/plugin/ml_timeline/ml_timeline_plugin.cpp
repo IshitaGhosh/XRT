@@ -177,4 +177,57 @@ namespace xdp {
         break;
     }
   }
+
+  void MLTimelinePlugin::scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId)
+  {
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Calling MLTimelinePlugin schedule config.");
+
+#ifdef XDP_CLIENT_BUILD
+#if 0
+    std::map<void* /*hwCtxImpl*/,
+             std::pair<uint64_t /* deviceId */, std::unique_ptr<MLTimelineImpl>>>::iterator itr;
+
+    itr = mMultiImpl.find(hwCtxImpl);
+    if (itr == mMultiImpl.end() || nullptr == itr->second.second) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
+          "Cannot retrieve ML Timeline data as a new HW Context Implementation is passed.");
+      return;
+    }
+
+    itr->second.second->scheduleConfigTxn(hwCtxImpl, pdiId);
+    itr->second.second.reset(nullptr);
+#endif
+     if (mMultiImpl.empty()) {
+       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Calling MLTimelinePlugin schedule data flush RETURN ");
+       return;
+    }
+    mMultiImpl.begin()->second.second->scheduleConfigTxn(hwCtxImpl, pdiId);
+
+#endif
+  }
+
+  void MLTimelinePlugin::scheduleDataFlushTxn(void* hwCtxImpl, uint64_t pdiId)
+  {
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Calling MLTimelinePlugin schedule data flush ");
+    #ifdef XDP_CLIENT_BUILD
+    #if 0
+    std::map<void* /*hwCtxImpl*/,
+             std::pair<uint64_t /* deviceId */, std::unique_ptr<MLTimelineImpl>>>::iterator itr;
+
+    itr = mMultiImpl.find(hwCtxImpl);
+    if (itr == mMultiImpl.end() || nullptr == itr->second.second) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
+          "Cannot retrieve ML Timeline data as a new HW Context Implementation is passed.");
+      return;
+    }
+    #endif
+    if (mMultiImpl.empty()) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Calling MLTimelinePlugin schedule data flush RETURN ");
+      return;
+    }
+    mMultiImpl.begin()->second.second->scheduleDataFlushTxn(hwCtxImpl, mMultiImpl.begin()->second.first, pdiId);
+
+    #endif
+
+  }
 }

@@ -18,12 +18,18 @@
 #define XDP_PLUGIN_ML_TIMELINE_CB_H
 
 #include "xdp/config.h"
+#include <cstdint>
 
 extern "C" {
 
   XDP_PLUGIN_EXPORT void updateDeviceMLTmln(void* hwCtxImpl);
   XDP_PLUGIN_EXPORT void finishflushDeviceMLTmln(void* hwCtxImpl);
 
+  XDP_PLUGIN_EXPORT
+  void scheduleConfigTxn(void* handle, uint64_t pdiId);
+
+  XDP_PLUGIN_EXPORT
+  void scheduleDataFlushTxn(void* handle, uint64_t pdiId);  
 }
 #endif
 
