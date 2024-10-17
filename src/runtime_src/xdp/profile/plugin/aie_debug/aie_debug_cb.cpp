@@ -22,7 +22,32 @@ namespace xdp {
       aieDebugPluginInstance.endAIEDebugRead(handle);
   }
 
+  static void scheduleConfigTxn(void* handle, uint64_t pdiId)
+  {
+    if (AieDebugPlugin::alive())
+      aieDebugPluginInstance.scheduleConfigTxn(handle, pdiId);
+  }
+
+  static void scheduleDataFlushTxn(void* handle, uint64_t pdiId)
+  {
+    if (AieDebugPlugin::alive())
+      aieDebugPluginInstance.scheduleDataFlushTxn(handle, pdiId);
+  }
+
 } // end namespace xdp
+
+
+extern "C"
+void scheduleConfigTxn(void* handle, uint64_t pdiId)
+{
+  xdp::scheduleConfigTxn(handle, pdiId);
+}
+
+extern "C"
+void scheduleDataFlushTxn(void* handle, uint64_t pdiId)
+{
+  xdp::scheduleDataFlushTxn(handle, pdiId);
+}
 
 extern "C"
 void updateAIEDebugDevice(void* handle)

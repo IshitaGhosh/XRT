@@ -28,6 +28,8 @@ namespace xdp {
     ~AieDebugPlugin();
     void updateAIEDevice(void* handle);
     void endAIEDebugRead(void* handle);
+    void scheduleConfigTxn(void* hwCtxImpl, uint64_t pdiId);
+    void scheduleDataFlushTxn(void* hwCtxImpl, uint64_t pdiId);
     static bool alive();
 
   private:
@@ -50,8 +52,8 @@ namespace xdp {
     uint8_t* txn_ptr;
     XAie_DevInst aieDevInst = {0};
     const aie::BaseFiletypeImpl* metadataReader = nullptr;
-    read_register_op_t* op;
-    std::size_t op_size;
+    read_register_op_t* op[5];
+    std::size_t op_size[5];
 
     static bool live;
     struct AIEData {
@@ -60,7 +62,8 @@ namespace xdp {
       std::thread thread;
     };
     std::map<void*, AIEData>  handleToAIEData;
-
+    int itrCount = 0;
+    uint64_t currPDI = 0;
   };
 
 } // end namespace xdp

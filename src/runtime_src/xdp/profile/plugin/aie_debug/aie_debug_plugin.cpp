@@ -147,11 +147,13 @@ namespace xdp {
       return;
     }
 
-    op_size = sizeof(read_register_op_t) + sizeof(register_data_t) * (counterId - 1);
-    op = (read_register_op_t*)malloc(op_size);
-    op->count = counterId;
-    for (int i = 0; i < op_profile_data.size(); i++)
-      op->data[i] = op_profile_data[i];
+    for (uint32_t j = 0; j < 5; j++) {
+      op_size[j] = sizeof(read_register_op_t) + sizeof(register_data_t) * (counterId - 1);
+      op[j] = (read_register_op_t*)malloc(op_size[j]);
+      op[j]->count = counterId;
+      for (int i = 0; i < op_profile_data.size(); i++)
+        op[j]->data[i] = op_profile_data[i];
+    }
 
   #if 0
     /* For larger debug buffer support, only one Debug BO can be alive at a time.
@@ -259,7 +261,7 @@ namespace xdp {
     if (!transactionHandler->initializeKernel("XDP_KERNEL"))
       return;
 
-    XAie_AddCustomTxnOp(&aieDevInst, XAIE_IO_CUSTOM_OP_READ_REGS, (void*)op, op_size);
+    XAie_AddCustomTxnOp(&aieDevInst, XAIE_IO_CUSTOM_OP_READ_REGS, (void*)op[0], op_size[0]);
     txn_ptr = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
 
     if (!transactionHandler->submitTransaction(txn_ptr))
@@ -269,11 +271,11 @@ namespace xdp {
 
     resultBO.sync(XCL_BO_SYNC_BO_FROM_DEVICE);
 
-    for (uint32_t i = 0; i < op->count; i++) {
+    for (uint32_t i = 0; i < op[0]->count; i++) {
       std::stringstream msg;
-      int col = (op->data[i].address >> 25) & 0x1F;
-      int row = (op->data[i].address >> 20) & 0x1F;
-      int reg = (op->data[i].address) & 0xFFFFF;
+      int col = (op[0]->data[i].address >> 25) & 0x1F;
+      int row = (op[0]->data[i].address >> 20) & 0x1F;
+      int reg = (op[0]->data[i].address) & 0xFFFFF;
       
       msg << "Debug tile (" << col << ", " << row << ") "
           << "hex address/values: " << std::hex << reg << " : "
@@ -298,6 +300,110 @@ namespace xdp {
       return itr->second.deviceID;
 
     return db->addDevice("win_device");
+  }
+
+
+  void AieDebugPlugin::scheduleConfigTxn(void* /*hwCtxImpl*/, uint64_t pdiId)
+  {
+    if (currPDI == pdiId) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", " In Debug:schedule config : pdi id matches :: no need to send txn ");
+      return;
+    }
+    currPDI = pdiId;
+    ++itrCount;
+    std::unique_ptr<aie::ClientTransaction> txnH = std::make_unique<aie::ClientTransaction>(mHwContext, "AIE Debug SC");
+
+    xrt::bo resultBO;
+    uint32_t* output = nullptr;
+    try {
+      resultBO = xrt_core::bo_int::create_debug_bo(mHwContext, 0x20000);
+      output = resultBO.map<uint32_t*>();
+      memset(output, 0, 0x20000);
+    } catch (std::exception& e) {
+      std::stringstream msg;
+      msg << "SCHEDULE CONFIG Unable to create 128KB buffer for AIE Debug results. Cannot get AIE Debug info. " << e.what() << std::endl;
+      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg.str());
+      return;
+    }
+
+    XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
+
+    if (!txnH->initializeKernel("XDP_KERNEL"))
+      return;
+
+    XAie_AddCustomTxnOp(&aieDevInst, XAIE_IO_CUSTOM_OP_READ_REGS, (void*)op[itrCount], op_size[itrCount]);
+    uint8_t* txnP = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
+
+    if (!txnH->submitTransaction(txnP))
+      return;
+
+    XAie_ClearTransaction(&aieDevInst);
+
+    resultBO.sync(XCL_BO_SYNC_BO_FROM_DEVICE);
+
+    for (uint32_t i = 0; i < op[itrCount]->count; i++) {
+      std::stringstream msg;
+      int col = (op[itrCount]->data[i].address >> 25) & 0x1F;
+      int row = (op[itrCount]->data[i].address >> 20) & 0x1F;
+      int reg = (op[itrCount]->data[i].address) & 0xFFFFF;
+      
+      msg << "Debug tile (" << col << ", " << row << ") "
+          << "hex address/values: " << std::hex << reg << " : "
+          << output[i] << std::dec;
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg.str());
+
+    }
+  }
+
+  void AieDebugPlugin::scheduleDataFlushTxn(void* /*hwCtxImpl*/, uint64_t pdiId)
+  {
+    if (currPDI == pdiId) {
+      xrt_core::message::send(xrt_core::message::severity_level::info, "XRT", " In Debug:schedule data flush : pdi id matches :: no need to send txn ");
+      return;
+    }
+    // dont save yet
+    ++itrCount;
+    std::unique_ptr<aie::ClientTransaction> txnH = std::make_unique<aie::ClientTransaction>(mHwContext, "AIE Debug SD");
+    xrt::bo resultBO;
+    uint32_t* output = nullptr;
+    try {
+      resultBO = xrt_core::bo_int::create_debug_bo(mHwContext, 0x20000);
+      output = resultBO.map<uint32_t*>();
+      memset(output, 0, 0x20000);
+    } catch (std::exception& e) {
+      std::stringstream msg;
+      msg << "SCHEDULE DATA FLUSH Unable to create 128KB buffer for AIE Debug results. Cannot get AIE Debug info. " << e.what() << std::endl;
+      xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", msg.str());
+      return;
+    }
+
+    XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
+
+    if (!txnH->initializeKernel("XDP_KERNEL"))
+      return;
+
+    XAie_AddCustomTxnOp(&aieDevInst, XAIE_IO_CUSTOM_OP_READ_REGS, (void*)op[itrCount], op_size[itrCount]);
+    uint8_t* txnP = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
+
+    if (!txnH->submitTransaction(txnP))
+      return;
+
+    XAie_ClearTransaction(&aieDevInst);
+
+    resultBO.sync(XCL_BO_SYNC_BO_FROM_DEVICE);
+
+    for (uint32_t i = 0; i < op[itrCount]->count; i++) {
+      std::stringstream msg;
+      int col = (op[itrCount]->data[i].address >> 25) & 0x1F;
+      int row = (op[itrCount]->data[i].address >> 20) & 0x1F;
+      int reg = (op[itrCount]->data[i].address) & 0xFFFFF;
+      
+      msg << "Debug tile (" << col << ", " << row << ") "
+          << "hex address/values: " << std::hex << reg << " : "
+          << output[i] << std::dec;
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg.str());
+
+    }
   }
 
 }  // end namespace xdp
