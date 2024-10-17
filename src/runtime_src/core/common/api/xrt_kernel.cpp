@@ -2374,9 +2374,18 @@ public:
   virtual void
   start()
   {
-    if (m_runlist)
+    std::string kernelName = "run_impl start execbuf : name " + kernel.get()->get_name();
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", s.c_str());
+    if (m_runlist) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", " Still landed up in m_runlist true");
       throw xrt_core::error("Run object belongs to a runlist and cannot be explicitly started");
-    
+    }
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "before prep_start");
+    if (!kernelName.empty() && 0 != kernel.get()->get_name().compare("XDP_KERNEL")) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "SCHEDULE TXN before prep_start");
+      xrt_core::xdp::schedule_dataflush_txn(nullptr);
+      xrt_core::xdp::schedule_config_txn(nullptr);
+    }
     prep_start();
     
     // log kernel start info
@@ -3206,6 +3215,7 @@ public:
   void
   execute(const xrt::runlist& rl)
   {
+    xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "execute runlist");
     if (m_state != state::idle)
       throw xrt_core::error("runlist must be idle before submitting for execution, current state: " + state_to_string(m_state));
 
@@ -3213,8 +3223,94 @@ public:
       return;
 
     // Prep each run object
-    for (auto& run : m_runlist)
+    for (auto& run : m_runlist) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "runlist prep_start ");
+      auto currKernel = run.get_handle()->get_kernel();
+      std::string currKernelName = currKernel->get_name();
+      if (0 == currKernelName.compare("XDP_KERNEL")) {
+        xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Found XDP_KERNEL in runlist before prep_start");
+        continue;
+      }
+
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "SCHEDULE TXN before prep_start");
+
+      // GET KERNEL - PDI mapping
+      //Kernel name -> IP_LAYOUT : m_name -> m_kernel_id -> check pdi cdo group -> which pdi id -> save pdi id in xdp static object to keep track
+
+      auto xclbin = currKernel->get_xclbin();
+      auto axlf = xclbin.get_axlf();
+
+      // aie_info meta data section size (part of xrtintf_xclbin)
+      auto aie_part = xrt_core::xclbin::get_aie_partition(axlf);
+
+      std::map<uint64_t, uint64_t> pdi_bo_info;
+
+      for (const auto& pdi : aie_part.pdis) {
+        for (const auto& cdo : pdi.cdo_groups) {
+            for (auto kernel_id : cdo.kernel_ids)
+                pdi_bo_info.emplace(kernel_id, cdo.pdi_id);
+        }
+      }
+
+      const ip_layout* ipLayoutSection = reinterpret_cast<const ip_layout*>(
+                                              xrt_core::xclbin_int::get_axlf_section(xclbin, IP_LAYOUT).first);       
+      uint64_t currKernelPDIId = 0;
+      for(int32_t i = 0; i < ipLayoutSection->m_count; ++i) {
+        const struct ip_data* ipData = &(ipLayoutSection->m_ip_data[i]);
+        if(ipData->m_type != IP_PS_KERNEL)
+          continue;
+
+        std::string nameStr(reinterpret_cast<const char*>(ipData->m_name));
+        std::string psKernelName = nameStr.substr(0, nameStr.find(":"));
+
+        std::string msg1 = "SCHEDULE TXN before prep_start Got kernel : " + psKernelName + " : currKernel : " + currKernelName + " : namestr : " + nameStr;
+        xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg1.c_str());
+
+        if (currKernelName.compare(psKernelName)) {
+          // current kernel not found ; continue to next entry in ip_layout
+          continue;
+        }
+
+        uint64_t kernelId = ipData->ps_kernel.m_kernel_id;
+        std::string msg2 = "SCHEDULE TXN before prep_start Got kernel id : " + std::to_string(kernelId);
+        xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg2.c_str());
+
+        auto e = pdi_bo_info.find(kernelId);
+
+        if (e == pdi_bo_info.end()) {
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", " could not find pdi for current id ");
+          break;
+        } else {
+          currKernelPDIId = e->second;
+          std::string msg3 = "SCHEDULE TXN before prep_start Got Kernel : " + std::to_string(kernelId) + " : PDI Id : " + std::to_string(currKernelPDIId);
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg2.c_str());
+
+
+          xrt_core::xdp::schedule_dataflush_txn(nullptr, currKernelPDIId);
+#if 0
+          uint32_t instr_size = 8;
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "BEFORE SCHEDULE TXN kernel NOOP 1");
+          xrt::bo bo_instr = xrt::bo(currKernel->get_hw_context().get_device(), instr_size, XCL_BO_FLAGS_CACHEABLE, currKernel->group_id(1));
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "BEFORE SCHEDULE TXN kernel NOOP 2");
+          std::memset(bo_instr.map<char*>(), (uint8_t)0, instr_size);
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "BEFORE SCHEDULE TXN kernel NOOP 3");
+          bo_instr.sync(XCL_BO_SYNC_BO_TO_DEVICE);
+
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "BEFORE SCHEDULE TXN kernel NOOP 4");
+          auto noopSchedKernel = xrt::kernel(currKernel->get_hw_context(), currKernelName); 
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "BEFORE SCHEDULE TXN kernel NOOP 5");
+          auto sched_run = noopSchedKernel(std::uint64_t{2}, bo_instr, instr_size/sizeof(int), 0, 0, 0, 0); 
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "BEFORE SCHEDULE TXN kernel NOOP 6");
+          sched_run.wait2();
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AFTER SCHEDULE TXN kernel NOOP");
+          xrt_core::xdp::schedule_config_txn(nullptr, currKernelPDIId);
+#endif
+          break;
+        }
+      }
+
       run.get_handle()->prep_start();
+    }
 
     // Close the command list.
     m_state = state::closed;
