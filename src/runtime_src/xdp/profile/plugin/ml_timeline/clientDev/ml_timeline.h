@@ -26,6 +26,7 @@ namespace xdp {
   class MLTimelineClientDevImpl : public MLTimelineImpl
   {
     std::unique_ptr<ResultBOContainer> mResultBOHolder;
+    uint64_t currPDI = 0;    
     public :
       MLTimelineClientDevImpl(VPDatabase* dB);
 
