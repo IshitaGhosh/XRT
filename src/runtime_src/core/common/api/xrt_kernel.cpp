@@ -3249,8 +3249,11 @@ public:
 
       for (const auto& pdi : aie_part.pdis) {
         for (const auto& cdo : pdi.cdo_groups) {
-            for (auto kernel_id : cdo.kernel_ids)
-                pdi_bo_info.emplace(kernel_id, cdo.pdi_id);
+          for (auto kernel_id : cdo.kernel_ids) {
+            pdi_bo_info.emplace(kernel_id, cdo.pdi_id);
+            std::string msg0 = " Adding kernel id " + std::to_string(kernel_id) + " : PDI id : " + std::to_string(cdo.pdi_id);
+            xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg0.c_str());
+          }
         }
       }
 
@@ -3285,11 +3288,11 @@ public:
         } else {
           currKernelPDIId = e->second;
           std::string msg3 = "SCHEDULE TXN before prep_start Got Kernel : " + std::to_string(kernelId) + " : PDI Id : " + std::to_string(currKernelPDIId);
-          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg2.c_str());
+          xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", msg3.c_str());
 
 
           xrt_core::xdp::schedule_dataflush_txn(nullptr, currKernelPDIId);
-#if 0
+
           uint32_t instr_size = 8;
           xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "BEFORE SCHEDULE TXN kernel NOOP 1");
           xrt::bo bo_instr = xrt::bo(currKernel->get_hw_context().get_device(), instr_size, XCL_BO_FLAGS_CACHEABLE, currKernel->group_id(1));
@@ -3306,7 +3309,7 @@ public:
           sched_run.wait2();
           xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "AFTER SCHEDULE TXN kernel NOOP");
           xrt_core::xdp::schedule_config_txn(nullptr, currKernelPDIId);
-#endif
+
           break;
         }
       }
