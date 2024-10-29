@@ -30,6 +30,17 @@ endif(XRT_ENABLE_WERROR)
 if (${XRT_NATIVE_BUILD} STREQUAL "yes")
   add_compile_options( ${XRT_WARN_OPTS} )
 endif()
+
+  if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
+    set(AIERT_DIR ${CMAKE_CURRENT_BINARY_DIR}/aie-rt)
+    set(XAIENGINE_BUILD_SHARED OFF)
+    xrt_add_subdirectory(aie-rt/driver/src aie-rt)
+    # This enables aiebu submodule use aie-rt from higher level
+    set(AIEBU_AIE_RT_BIN_DIR ${AIERT_DIR})
+    set(AIEBU_AIE_RT_HEADER_DIR ${AIERT_DIR}/include)
+    message("-- Exporting AIEBU_AIE_RT_BIN_DIR=${AIEBU_AIE_RT_BIN_DIR}")
+    message("-- Exporting AIEBU_AIE_RT_HEADER_DIR=${AIEBU_AIE_RT_HEADER_DIR}")
+  endif()
 xrt_add_subdirectory(xdp)
 
 xrt_add_subdirectory(tools/xclbinutil)
