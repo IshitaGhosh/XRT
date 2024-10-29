@@ -79,7 +79,7 @@ namespace xdp {
     private:
       typedef XAie_Events EventType;
       typedef std::vector<EventType> EventVector;
-      std::unique_ptr<aie::ClientTransaction> transactionHandler;
+//      std::unique_ptr<aie::ClientTransaction> transactionHandler;
   
 
       std::size_t op_size;

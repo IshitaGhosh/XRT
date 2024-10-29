@@ -227,8 +227,8 @@ namespace xdp {
       xrt_core::message::send(severity_level::warning, "XRT", "AIE Driver Initialization Failed.");
     
 
-    auto context = metadata->getHwContext();
-    transactionHandler = std::make_unique<aie::ClientTransaction>(context, "AIE Trace Setup");
+//    auto context = metadata->getHwContext();
+//    transactionHandler = std::make_unique<aie::ClientTransaction>(context, "AIE Trace Setup");
   }
 
 
@@ -342,6 +342,10 @@ namespace xdp {
 
 
   bool AieTrace_WinImpl::configureWindowedEventTrace(void* hwCtxImpl) {
+
+    auto context = metadata->getHwContext();
+    std::unique_ptr<aie::ClientTransaction> txnHandler = std::make_unique<aie::ClientTransaction>(context, "AIE Windowed Trace Setup");
+
     //Start recording the transaction
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
 
@@ -393,10 +397,10 @@ namespace xdp {
 
     uint8_t *txn_ptr = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
 
-    if (!transactionHandler->initializeKernel("XDP_KERNEL"))
+    if (!txnHandler->initializeKernel("XDP_KERNEL"))
       return false;
 
-    if (!transactionHandler->submitTransaction(txn_ptr))
+    if (!txnHandler->submitTransaction(txn_ptr))
       return false;
     
     // Must clear aie state
@@ -492,6 +496,8 @@ namespace xdp {
           << interfaceTileTraceFlushLocs.size() << " interface tiles.";
       xrt_core::message::send(severity_level::info, "XRT", msg.str());
     }
+    auto context = metadata->getHwContext();
+    std::unique_ptr<aie::ClientTransaction> txnHandler = std::make_unique<aie::ClientTransaction>(context, "AIE Flush Trace Setup");
 
     // Start recording the transaction
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
@@ -511,8 +517,10 @@ namespace xdp {
 
     uint8_t *txn_ptr = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
     
-    transactionHandler->setTransactionName("AIE Trace Flush");
-    if (!transactionHandler->submitTransaction(txn_ptr))
+    if (!txnHandler->initializeKernel("XDP_KERNEL"))
+      return ;
+    
+    if (!txnHandler->submitTransaction(txn_ptr))
       return;
 
     XAie_ClearTransaction(&aieDevInst);
@@ -1069,6 +1077,9 @@ namespace xdp {
     std::string startType = xrt_core::config::get_aie_trace_settings_start_type();
     unsigned int startLayer = xrt_core::config::get_aie_trace_settings_start_layer();
     
+    auto context = metadata->getHwContext();
+    std::unique_ptr<aie::ClientTransaction> txnHandler = std::make_unique<aie::ClientTransaction>(context, "AIE Trace Setup");
+
     //Start recording the transaction
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
 
@@ -1609,10 +1620,10 @@ namespace xdp {
 
     uint8_t *txn_ptr = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
 
-    if (!transactionHandler->initializeKernel("XDP_KERNEL"))
+    if (!txnHandler->initializeKernel("XDP_KERNEL"))
       return false;
 
-    if (!transactionHandler->submitTransaction(txn_ptr))
+    if (!txnHandler->submitTransaction(txn_ptr))
       return false;
 
     xrt_core::message::send(severity_level::info, "XRT", "Successfully scheduled AIE Trace Transaction Buffer.");
@@ -1622,17 +1633,19 @@ namespace xdp {
 
     // Clearing the broadcast network used for trace start
     if(m_trace_start_broadcast) {
+    //auto context = metadata->getHwContext();
+    std::unique_ptr<aie::ClientTransaction> txnHandler1 = std::make_unique<aie::ClientTransaction>(context, "AIE Trace Setup Reset");
       XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
       reset2ChannelBroadcastNetwork(hwCtxImpl, traceStartBroadcastChId1, traceStartBroadcastChId2);
       txn_ptr = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
-      if (!transactionHandler->initializeKernel("XDP_KERNEL"))
+      if (!txnHandler1->initializeKernel("XDP_KERNEL"))
         return false;
-      if (!transactionHandler->submitTransaction(txn_ptr))
+      if (!txnHandler1->submitTransaction(txn_ptr))
         return false;
-    }
     
     // Must clear aie state
     XAie_ClearTransaction(&aieDevInst);
+    }
 
     // Report trace events reserved per tile
     // printTraceEventStats(deviceId);
