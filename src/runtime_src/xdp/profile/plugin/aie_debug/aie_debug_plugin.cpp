@@ -80,7 +80,7 @@ namespace xdp {
     if (!metadataReader)
       return;
 
-    transactionHandler = std::make_unique<aie::ClientTransaction>(mHwContext, "AIE Debug");
+//    transactionHandler = std::make_unique<aie::ClientTransaction>(mHwContext, "AIE Debug");
     xdp::aie::driver_config meta_config = getAIEConfigMetadata();
 
     XAie_Config cfg {
@@ -254,15 +254,17 @@ namespace xdp {
       return;
     }
 
+    std::unique_ptr<aie::ClientTransaction> txnHandler = std::make_unique<aie::ClientTransaction>(mHwContext, "AIE Debug");
+
     XAie_StartTransaction(&aieDevInst, XAIE_TRANSACTION_DISABLE_AUTO_FLUSH);
 
-    if (!transactionHandler->initializeKernel("XDP_KERNEL"))
+    if (!txnHandler->initializeKernel("XDP_KERNEL"))
       return;
 
     XAie_AddCustomTxnOp(&aieDevInst, XAIE_IO_CUSTOM_OP_READ_REGS, (void*)op, op_size);
     txn_ptr = XAie_ExportSerializedTransaction(&aieDevInst, 1, 0);
 
-    if (!transactionHandler->submitTransaction(txn_ptr))
+    if (!txnHandler->submitTransaction(txn_ptr))
       return;
 
     XAie_ClearTransaction(&aieDevInst);

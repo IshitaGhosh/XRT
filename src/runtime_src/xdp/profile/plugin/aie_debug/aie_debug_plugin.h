@@ -46,7 +46,7 @@ namespace xdp {
     };
     
     xrt::hw_context mHwContext;
-    std::unique_ptr<aie::ClientTransaction> transactionHandler;
+//    std::unique_ptr<aie::ClientTransaction> transactionHandler;
     uint8_t* txn_ptr;
     XAie_DevInst aieDevInst = {0};
     const aie::BaseFiletypeImpl* metadataReader = nullptr;
