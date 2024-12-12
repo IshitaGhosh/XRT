@@ -29,7 +29,7 @@ else()
 
 endif()
 
-if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
+if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes" OR XDP_TELLURIDE_BUILD_CMAKE STREQUAL "yes")
 
  add_compile_options("-DSKIP_IOCTL")
 

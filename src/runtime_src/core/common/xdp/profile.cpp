@@ -146,7 +146,14 @@ register_callbacks(void* handle)
     update_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "updateDeviceMLTmln"));
     finish_flush_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "finishflushDeviceMLTmln"));
   #else
-    (void)handle;
+    #ifdef XDP_TELLURIDE_BUILD
+      using ftype = void (*)(void*);
+
+      update_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "updateDeviceMLTmln"));
+      finish_flush_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "finishflushDeviceMLTmln"));
+    #else
+      (void)handle;
+    #endif
   #endif
 
 }
@@ -463,16 +470,28 @@ update_device(void* handle)
 
 #else
 
-  if (xrt_core::config::get_pl_deadlock_detection() 
-      && nullptr == std::getenv("XCL_EMULATION_MODE")) {
-    try {
-      xrt_core::xdp::pl_deadlock::load();
+  #ifdef XDP_TELLURIDE_BUILD
+    if (xrt_core::config::get_ml_timeline()) {
+      try {
+        xrt_core::xdp::ml_timeline::load();
+      }
+      catch (...) {
+        return;
+      }
+      xrt_core::xdp::ml_timeline::update_device(handle);
+    }            
+  #else
+    if (xrt_core::config::get_pl_deadlock_detection() 
+        && nullptr == std::getenv("XCL_EMULATION_MODE")) {
+      try {
+        xrt_core::xdp::pl_deadlock::load();
+      }
+      catch (...) {
+        return;
+      }
+      xrt_core::xdp::pl_deadlock::update_device(handle);
     }
-    catch (...) {
-      return;
-    }
-    xrt_core::xdp::pl_deadlock::update_device(handle);
-  }
+  #endif
 #endif
 }
 
@@ -497,10 +516,15 @@ finish_flush_device(void* handle)
 
 #else
 
-  if (xrt_core::config::get_pl_deadlock_detection()
-      && nullptr == std::getenv("XCL_EMULATION_MODE")) {
-    xrt_core::xdp::pl_deadlock::finish_flush_device(handle);
-  }
+  #ifdef XDP_TELLURIDE_BUILD
+    if (xrt_core::config::get_ml_timeline())
+      xrt_core::xdp::ml_timeline::finish_flush_device(handle);
+  #else
+    if (xrt_core::config::get_pl_deadlock_detection()
+        && nullptr == std::getenv("XCL_EMULATION_MODE")) {
+      xrt_core::xdp::pl_deadlock::finish_flush_device(handle);
+    }    
+  #endif                          
 #endif
 }
 

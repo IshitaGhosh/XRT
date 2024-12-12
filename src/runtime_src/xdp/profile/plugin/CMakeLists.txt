@@ -15,7 +15,12 @@ if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
     add_subdirectory(aie_halt)
     add_subdirectory(aie_pc)
   endif()
-   
+
+elseif (XDP_TELLURIDE_BUILD_CMAKE STREQUAL "yes")
+  add_subdirectory(native)
+  add_subdirectory(user)
+  add_subdirectory(ml_timeline)
+     
 else()
 
 # =========================================================

@@ -15,6 +15,7 @@ endif()
 
 message("-- CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}")
 
+set(XDP_TELLURIDE_BUILD_CMAKE "yes")
 
 # Enable testing for this directory and below.  This command should be
 # in the source directory root because ctest expects to find a test
