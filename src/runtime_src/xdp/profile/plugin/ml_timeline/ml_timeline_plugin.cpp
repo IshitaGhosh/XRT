@@ -30,6 +30,8 @@
 
 #ifdef XDP_CLIENT_BUILD
 #include "xdp/profile/plugin/ml_timeline/clientDev/ml_timeline.h"
+#elif defined(XDP_DEV_HANDLE_BUILD)
+#include "xdp/profile/plugin/ml_timeline/devHandle/ml_timeline.h"
 #endif
 
 namespace xdp {
@@ -144,7 +146,7 @@ namespace xdp {
 
     void* devHandle = hwCtxImpl;
 
-    auto device = xrt_core::get_userpf_device(handle);
+    auto device = xrt_core::get_userpf_device(devHandle);
 
     //xrt::hw_context hwContext = xrt_core::hw_context_int::create_hw_context_from_implementation(hwCtxImpl);
     //std::shared_ptr<xrt_core::device> coreDevice = xrt_core::hw_context_int::get_core_device(hwContext);
@@ -153,7 +155,7 @@ namespace xdp {
 
     std::string winDeviceName = "win_device" + std::to_string(implId);
     uint64_t deviceId = db->addDevice(winDeviceName);
-    (db->getStaticInfo()).updateDeviceClient(deviceId, coreDevice, false);
+    (db->getStaticInfo()).updateDeviceClient(deviceId, device, false);
     (db->getStaticInfo()).setDeviceName(deviceId, winDeviceName);
 
     mMultiImpl[devHandle] = std::make_pair(implId, std::make_unique<MLTimelineDevHandleImpl>(db, mBufSz));

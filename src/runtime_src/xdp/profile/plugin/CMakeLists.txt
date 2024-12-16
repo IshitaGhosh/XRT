@@ -23,7 +23,7 @@ elseif (XDP_TELLURIDE_BUILD_CMAKE STREQUAL "yes")
 
 elseif (XDP_DEV_HANDLE_BUILD_CMAKE STREQUAL "yes")
 
-add_subdirectory(ml_timeline)
+  add_subdirectory(ml_timeline)
      
 else()
 
