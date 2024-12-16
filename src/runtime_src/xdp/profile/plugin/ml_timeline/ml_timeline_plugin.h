@@ -44,7 +44,7 @@ namespace xdp {
     static bool live;
 
     uint32_t mBufSz;
-    std::map<void* /*hwCtxImpl*/,
+    std::map<void* /*hwCtxImpl or device handle*/,
              std::pair<uint64_t /* deviceId */, std::unique_ptr<MLTimelineImpl>>> mMultiImpl;
   };
 

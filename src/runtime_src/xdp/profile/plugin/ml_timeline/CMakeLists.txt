@@ -10,6 +10,10 @@ if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes" OR XDP_TELLURIDE_BUILD_CMAKE STREQUAL 
   set(IMPL_DIR "${PROFILE_DIR}/plugin/ml_timeline/clientDev")
 endif()
 
+if (XDP_DEV_HANDLE STREQUAL "yes")
+  set(IMPL_DIR "${PROFILE_DIR}/plugin/ml_timeline/devHandle")
+endif()
+
 file(GLOB ML_TIMELINE_PLUGIN_FILES
   "${PROFILE_DIR}/plugin/ml_timeline/*.h"
   "${PROFILE_DIR}/plugin/ml_timeline/*.cpp"
@@ -32,3 +36,20 @@ if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes" OR XDP_TELLURIDE_BUILD_CMAKE STREQUAL 
   )
 
 endif()
+
+if (XDP_DEV_HANDLE STREQUAL "yes")
+  add_library(xdp_ml_timeline_plugin MODULE ${ML_TIMELINE_PLUGIN_FILES})
+  add_dependencies(xdp_ml_timeline_plugin xdp_core xrt_coreutil)
+
+  target_link_libraries(xdp_ml_timeline_plugin PRIVATE xdp_core xrt_coreutil)
+
+  target_compile_definitions(xdp_ml_timeline_plugin PRIVATE XDP_DEV_HANDLE_BUILD=1)
+
+  set_target_properties(xdp_ml_timeline_plugin PROPERTIES VERSION ${XRT_VERSION_STRING} SOVERSION ${XRT_SOVERSION})
+
+  install (TARGETS xdp_ml_timeline_plugin
+    LIBRARY DESTINATION ${XDP_PLUGIN_INSTALL_DIR}
+  )
+
+endif()
+
