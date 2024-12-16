@@ -35,6 +35,10 @@ if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes" OR XDP_TELLURIDE_BUILD_CMAKE STREQUAL 
 
  add_subdirectory(profile)
 
+elseif (XDP_DEV_HANDLE_BUILD_CMAKE STREQUAL "yes")
+
+ add_subdirectory(profile)
+
 else()
 
   add_subdirectory(appdebug)

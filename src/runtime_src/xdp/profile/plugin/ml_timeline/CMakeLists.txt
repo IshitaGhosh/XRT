@@ -37,7 +37,7 @@ if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes" OR XDP_TELLURIDE_BUILD_CMAKE STREQUAL 
 
 endif()
 
-if (XDP_DEV_HANDLE STREQUAL "yes")
+if (XDP_DEV_HANDLE_BUILD_CMAKE STREQUAL "yes")
   add_library(xdp_ml_timeline_plugin MODULE ${ML_TIMELINE_PLUGIN_FILES})
   add_dependencies(xdp_ml_timeline_plugin xdp_core xrt_coreutil)
 

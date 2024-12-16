@@ -20,6 +20,10 @@ elseif (XDP_TELLURIDE_BUILD_CMAKE STREQUAL "yes")
   add_subdirectory(native)
   add_subdirectory(user)
   add_subdirectory(ml_timeline)
+
+elseif (XDP_DEV_HANDLE_BUILD_CMAKE STREQUAL "yes")
+
+add_subdirectory(ml_timeline)
      
 else()
 
