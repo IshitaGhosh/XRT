@@ -23,6 +23,8 @@
 #include "core/common/message.h"
 #include "core/common/api/hw_context_int.h"
 
+#include "xdp/profile/device/utility.h"
+
 #include "xdp/profile/plugin/ml_timeline/ml_timeline_plugin.h"
 #include "xdp/profile/plugin/ml_timeline/ml_timeline_impl.h"
 #include "xdp/profile/plugin/vp_base/info.h"
@@ -30,6 +32,8 @@
 
 #ifdef XDP_CLIENT_BUILD
 #include "xdp/profile/plugin/ml_timeline/clientDev/ml_timeline.h"
+#elif defined(XDP_VE2_BUILD)
+#include "xdp/profile/plugin/ml_timeline/ve2/ml_timeline.h"
 #endif
 
 namespace xdp {
@@ -114,7 +118,7 @@ namespace xdp {
 
   void MLTimelinePlugin::updateDevice(void* hwCtxImpl)
   {
-#ifdef XDP_CLIENT_BUILD
+#if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
 
     if (mMultiImpl.find(hwCtxImpl) != mMultiImpl.end()) {
       // Same Hardware Context Implementation uses the same impl and buffer
@@ -129,12 +133,28 @@ namespace xdp {
 
     uint64_t implId = mMultiImpl.size();
 
-    std::string winDeviceName = "win_device" + std::to_string(implId);
-    uint64_t deviceId = db->addDevice(winDeviceName);
+  #ifdef XDP_CLIENT_BUILD
+    std::string deviceName = "win_device" + std::to_string(implId);
+
+    uint64_t deviceId = db->addDevice(deviceName);
     (db->getStaticInfo()).updateDeviceClient(deviceId, coreDevice, false);
-    (db->getStaticInfo()).setDeviceName(deviceId, winDeviceName);
+    (db->getStaticInfo()).setDeviceName(deviceId, deviceName);
 
     mMultiImpl[hwCtxImpl] = std::make_pair(implId, std::make_unique<MLTimelineClientDevImpl>(db, mBufSz));
+
+  #elif defined(XDP_VE2_BUILD)
+    //std::string deviceName = "ve2_device" + std::to_string(implId);
+
+    xclDeviceHandle devHandle = coreDevice->get_device_handle();
+    uint64_t deviceId = db->addDevice(util::getDebugIpLayoutPath(handle));  // Get the unique device Id
+
+    (db->getStaticInfo()).updateDevice(deviceId, nullptr, handle);
+
+     mMultiImpl[hwCtxImpl] = std::make_pair(implId, std::make_unique<MLTimelineVE2Impl>(db, mBufSz));
+
+
+  #endif
+
     auto mlImpl = mMultiImpl[hwCtxImpl].second.get();
     mlImpl->updateDevice(hwCtxImpl);
 
@@ -143,7 +163,7 @@ namespace xdp {
 
   void MLTimelinePlugin::finishflushDevice(void* hwCtxImpl)
   {
-#ifdef XDP_CLIENT_BUILD
+#if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
     if (mMultiImpl.empty()) {
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
           "In ML Timeline Plugin : No active HW Context found. So no data flush done.");
@@ -167,7 +187,7 @@ namespace xdp {
 
   void MLTimelinePlugin::writeAll(bool /*openNewFiles*/)
   {
-#ifdef XDP_CLIENT_BUILD
+#if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
     for (auto &e : mMultiImpl) {
       if (nullptr == e.second.second)
         continue;
