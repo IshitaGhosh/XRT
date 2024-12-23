@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright (C) 2022-2023 Advanced Micro Devices, Inc.  All rights reserved.
+# Copyright (C) 2022-2024 Advanced Micro Devices, Inc.  All rights reserved.
 #
 
 if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
@@ -15,7 +15,13 @@ if (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
     add_subdirectory(aie_halt)
     add_subdirectory(aie_pc)
   endif()
-   
+
+elseif (XDP_VE2_BUILD_CMAKE STREQUAL "yes")
+
+  add_subdirectory(native)
+  add_subdirectory(user)
+  add_subdirectory(ml_timeline)
+
 else()
 
 # =========================================================
