@@ -34,6 +34,7 @@
 #include "xdp/profile/plugin/ml_timeline/clientDev/ml_timeline.h"
 #elif defined(XDP_VE2_BUILD)
 #include "xdp/profile/plugin/ml_timeline/ve2/ml_timeline.h"
+#include "xdp/profile/device/hal_device/xdp_hal_device.h"
 #endif
 
 namespace xdp {
@@ -146,9 +147,10 @@ namespace xdp {
     //std::string deviceName = "ve2_device" + std::to_string(implId);
 
     xclDeviceHandle devHandle = coreDevice->get_device_handle();
-    uint64_t deviceId = db->addDevice(util::getDebugIpLayoutPath(handle));  // Get the unique device Id
+    uint64_t deviceId = db->addDevice(util::getDebugIpLayoutPath(devHandle));  // Get the unique device Id
 
-    (db->getStaticInfo()).updateDevice(deviceId, nullptr, handle);
+    (db->getStaticInfo()).updateDevice(deviceId, std::move(std::make_unique<HalDevice>(devHandle)), devHandle);
+
 
      mMultiImpl[hwCtxImpl] = std::make_pair(implId, std::make_unique<MLTimelineVE2Impl>(db, mBufSz));
 

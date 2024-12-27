@@ -55,7 +55,7 @@ namespace xdp {
 
     public:
       VE2ResultBO(aiarm::shim* devHandle, size_t size) 
-        : m_dev(devHandle)
+        : mDev(devHandle)
       {
         xcl_bo_flags flags {0};
         flags.flags = XRT_BO_FLAGS_CACHEABLE;
@@ -63,7 +63,7 @@ namespace xdp {
         flags.dir = XRT_BO_ACCESS_READ_WRITE;
         flags.use = XRT_BO_USE_DEBUG;
         mBufHandle  = mDev->xclAllocBO(size, flags.all);
-        mapAndCh();
+        mapAndChk();
       }
 
       ~VE2ResultBO()
@@ -75,8 +75,6 @@ namespace xdp {
       xrt_core::buffer_handle* get() { return mBufHandle.get(); }
 
       uint32_t *map() { return mBOptr; }
-
-      void set_no_unmap() { mNoUnmap = true; }
 
       void set_no_unmap() { mNoUnmap = true; }
 
