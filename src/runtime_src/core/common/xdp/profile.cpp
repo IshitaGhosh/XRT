@@ -218,6 +218,52 @@ finish_flush_device(void* handle)
 
 } // end namespace xrt_core::xdp::ml_timeline
 
+namespace xrt_core::xdp::gen_asm_elf {
+
+  std::function<void (void*)> update_device_cb;
+  std::function<void (void*)> finish_flush_device_cb;
+  
+  void
+  register_callbacks(void* handle)
+  { 
+    #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
+      using ftype = void (*)(void*);
+  
+      update_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "updateDeviceGenAsmElf"));
+      finish_flush_device_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "finishflushDeviceGenAsmElf"));
+  
+    #else
+      (void)handle;
+    #endif
+  
+  }
+  
+  
+  void
+  load()
+  {
+    static xrt_core::module_loader xdp_loader("xdp_gen_asm_elf_plugin",
+                                                  register_callbacks,
+                                                  warning_callbacks_empty);
+  }
+  
+  // Make connections
+  void
+  update_device(void* handle)
+  {
+    if (update_device_cb)
+      update_device_cb(handle);
+  }
+  
+  void
+  finish_flush_device(void* handle)
+  {
+    if (finish_flush_device_cb)
+      finish_flush_device_cb(handle);
+  }
+  
+  } // end namespace xrt_core::xdp::gen_asm_elf
+
 namespace xrt_core::xdp::aie_pc {
 
 std::function<void (void*)> update_device_cb;
@@ -407,6 +453,7 @@ update_device(void* handle, bool hw_context_flow)
       || xrt_core::config::get_aie_trace()
       || xrt_core::config::get_aie_debug()
       || xrt_core::config::get_aie_halt()
+      || xrt_core::config::get_gen_asm_elf()
       || xrt_core::config::get_aie_pc()) {
     /* All the above plugins are dependent on xdp_core library. So,
      * explicitly load it to avoid library search issue in implicit loading.
@@ -427,6 +474,17 @@ update_device(void* handle, bool hw_context_flow)
     catch (...) {
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", 
         "Failed to load ML Timeline library.");      
+    }
+  }
+
+  if (xrt_core::config::get_gen_asm_elf()) {
+    try {
+      xrt_core::xdp::gen_asm_elf::load();
+      xrt_core::xdp::gen_asm_elf::update_device(handle);
+    }
+    catch (...) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", 
+        "Failed to load Gem Asm Elf library.");      
     }
   }
 
@@ -544,7 +602,19 @@ update_device(void* handle, bool hw_context_flow)
     }
     xrt_core::xdp::ml_timeline::update_device(handle);
   }
+
+  if (xrt_core::config::get_gen_asm_elf()) {
+    try {
+      xrt_core::xdp::gen_asm_elf::load();
+    }
+    catch (...) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
+        "Failed to load Gen Asm Elf library.");
+    }
+    xrt_core::xdp::gen_asm_elf::update_device(handle);
+  }
   
+
   if (xrt_core::config::get_aie_profile()) {
     try {
       xrt_core::xdp::aie::profile::load();
@@ -584,6 +654,8 @@ finish_flush_device(void* handle)
 
   if (xrt_core::config::get_ml_timeline())
     xrt_core::xdp::ml_timeline::finish_flush_device(handle);
+  if (xrt_core::config::get_gen_asm_elf())
+    xrt_core::xdp::gen_asm_elf::finish_flush_device(handle);
   if (xrt_core::config::get_aie_halt())
     xrt_core::xdp::aie::halt::finish_flush_device(handle);
   if (xrt_core::config::get_aie_profile())
@@ -607,6 +679,8 @@ finish_flush_device(void* handle)
     xrt_core::xdp::aie::status::end_status(handle);
   if (xrt_core::config::get_ml_timeline())
     xrt_core::xdp::ml_timeline::finish_flush_device(handle);
+  if (xrt_core::config::get_gen_asm_elf())
+    xrt_core::xdp::gen_asm_elf::finish_flush_device(handle);
   if (xrt_core::config::get_aie_profile())
     xrt_core::xdp::aie::profile::end_poll(handle);
 

@@ -261,6 +261,12 @@ get_ml_timeline_settings_num_buffer_segments()
   return value;
 }
 
+inline bool
+get_gen_asm_elf()
+{
+  static bool value = detail::get_bool_value("Debug.gen_asm_elf",false);
+  return value;
+}
 
 inline bool
 get_aie_pc()
