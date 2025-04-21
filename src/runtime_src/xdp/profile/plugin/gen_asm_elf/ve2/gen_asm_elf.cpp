@@ -137,7 +137,7 @@ if (RC != X_OK)
   xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", " Driver Initialization Failed.");
 #endif
 
-  XAie_SetIOBackend(&aieDevInst, X_IO_BACKEND_CONTROLCODE);
+  XAie_SetIOBackend(&aieDevInst, XAIE_IO_BACKEND_CONTROLCODE);
   XAie_OpenControlCodeFile(&aieDevInst, "gen5svt.asm", 0x2000);
   XAie_StartNewJob(&aieDevInst);
   XAie_ControlCodeSaveTimestamp(&aieDevInst, 1212);

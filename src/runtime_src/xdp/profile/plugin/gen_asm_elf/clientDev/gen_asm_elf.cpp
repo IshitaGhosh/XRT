@@ -69,7 +69,7 @@ namespace xdp {
     try {
       auto device = xrt_core::hw_context_int::get_core_device(mHwContext);
       xrt::xclbin xrtXclbin = device.get()->get_xclbin(device.get()->get_xclbin_uuid());
-      auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, _METADATA);
+      auto data = xrt_core::xclbin_int::get_axlf_section(xrtXclbin, AIE_METADATA);
 
       if (!data.first || !data.second) {
         xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", "Empty  Metadata in xclbin");
@@ -113,7 +113,7 @@ namespace xdp {
 
     uint64_t startCol = 0, numCols = 0;
 
-    boost::property_tree::ptree aiePartitionPt = xdp::aie::getPartitionInfo(hwCtxImpl);
+    boost::property_tree::ptree aiePartitionPt = xdp::aie::getAIEPartitionInfo(hwCtxImpl);
     for (const auto& e : aiePartitionPt) {
       startCol = e.second.get<uint64_t>("start_col");
       numCols  = e.second.get<uint64_t>("num_cols");
