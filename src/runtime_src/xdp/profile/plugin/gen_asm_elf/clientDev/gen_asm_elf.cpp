@@ -106,7 +106,7 @@ namespace xdp {
 
     XAie_DevInst aieDevInst = {0};
     auto RC = XAie_CfgInitialize(&aieDevInst, &cfg);
-    if (RC != X_OK) {
+    if (RC != XAIE_OK) {
       xrt_core::message::send(xrt_core::message::severity_level::warning, "XRT", " Driver Initialization Failed.");
       return;
     }
