@@ -11,12 +11,14 @@ if (XDP_VE2_BUILD_CMAKE STREQUAL "yes")
   add_subdirectory(aie_halt)
   add_subdirectory(native)
   add_subdirectory(user)
+  add_subdirectory(gen_asm_elf)
 
 elseif (XDP_CLIENT_BUILD_CMAKE STREQUAL "yes")
 
   add_subdirectory(native)
   add_subdirectory(user)
   add_subdirectory(ml_timeline)
+  add_subdirectory(gen_asm_elf)
 
   if (WIN32)
     add_subdirectory(aie_profile)
