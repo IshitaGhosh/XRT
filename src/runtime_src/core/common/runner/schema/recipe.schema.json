@@ -70,7 +70,7 @@
               "name": { "$ref": "#/$defs/key" },
               "type": {
                 "type": "string",
-                "enum": ["input", "output", "internal"]
+                "enum": ["input", "output", "inout", "internal", "weight", "spill", "unknown"]
               },
               "size": { "$ref": "#/$defs/size" }
             },
@@ -148,7 +148,7 @@
                 "items": {
                   "type": "object",
                   "properties": {
-                    "value": { "type": ["string", "integer" },
+                    "value": { "type": ["string", "integer"] },
                     "type": { "enum": ["int", "string"] },
                     "argidx": { "$ref": "#/$defs/argidx" }
                   }

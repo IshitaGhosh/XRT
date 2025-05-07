@@ -6,10 +6,10 @@ A run recipe defines a graph model that can be executed by XRT.
 
 This directory contains a stand-alone `xrt::runner` class that reads and 
 executes a run recipe json file.   The idea is to have tools, e.g. VAIML
-geneate the run recipe along with xclbin and control code for kernels.
+generate the run recipe along with xclbin and control code for kernels.
 
 The schema of the recipe json is defined in `schema/recipe.schema.json`. The
-implementation of the runner drove some of the defintion of the json
+implementation of the runner drove some of the definition of the json
 format.
 
 A run recipe is associated with exactly one configuration (xclbin or
@@ -75,7 +75,7 @@ be listed in the resources section.
 
 ### Kernel functions
 
-Kernels listed in the resoruces section result in runner creating
+Kernels listed in the resources section result in runner creating
 `xrt::kernel` objects.  In XRT, the kernel objects are identified by
 name, which must match a kernel instance name in the xclbin.
 
@@ -153,15 +153,35 @@ created input and output tensors, or they can be internal buffers used
 during execution of the compiled graph at the discretion of the
 compiler (VAIML).
 
+#### Buffer types
+
+The `type` of a buffer is one of
+
+- input
+- output
+- internal
+- weight
+- spill
+- unknown
+
+For all pratical purposes the `type` is ignored by the xrt::runner
+when it creates the recipe.  The only enforcement is that internal
+buffers must specify a size so that the recipe can create an xrt::bo
+object for the internal buffer.  All other buffers are treated as
+external and must be bound to the recipe by the framework.  Note that
+binding can be implicit by using a [profile](profile.md) to explicit 
+through the xrt::runner interface.
+
 #### External buffers (graph input and output)
 
 External buffers (input and output) are created by the framework /
-application outside of the runner and bound to the recipe during
-execution.  The runner itself does not create `xrt::bo` objects for
-external buffers, but does rely on the framework to bind these buffers
-to runner object created from the recipe.   The external buffers must
-still be listed in the resources section and specify a name that can 
-be used when execution sets kernel arguments.
+application outside of the recipe and bound to the recipe during
+execution.  If the recipe buffer element doesn't specify a buffer size, 
+then the runner does not create `xrt::bo` objects for
+external buffers, but instead relies on the framework
+to bind these buffers to runner object created from the recipe.  The
+external buffers must still be listed in the resources section and
+specify a name that can be used when execution sets kernel arguments.
 
 ```
   "resources": {
@@ -182,16 +202,24 @@ be used when execution sets kernel arguments.
   }
 
 ``` 
+If a buffer `size` is specified as in:
+
+```
+      {
+        "name": "ofm",
+        "type": "output",
+        "size": 8196
+      }
+```
+then the runner will create an `xrt::bo` internally for the specified
+buffer, even if the buffer is specified as "output" it is treated as
+internal by the runner.  The application framework can still bind an
+external buffer the runner object created from the recipe, but doesn't
+have to.
 
 The `name` of the buffers in the resources section must be unique.
 The name is used in the `execution` section to refer to kernel or cpu
 buffer arguments.
-
-<!-- The `src` of the buffers is meant to refer to a tensor name in the
-graph, but the use of this field is TBD as it does not appear to be
-required.  The `name` itself is enough to identify the buffer, both
-within the recipe and for external frame works to bind external
-created buffers to the graph. -->
 
 #### Internal buffers
 
@@ -417,7 +445,7 @@ input and output are consumed during one kernel execution.  See the
 
 # Runner API
 
-The runner is contructed from a recipe json file and a device object.
+The runner is constructed from a recipe json file and a device object.
 The runner is a standard XRT C++ first class object with the following
 API.  Include documentation will be beefed up when the runner code is 
 moved to public XRT.
@@ -556,7 +584,12 @@ A unit test for the cpu library and corresponding sample run recipe
 that references the cpu library is under `test/cpulib.cpp` and
 `test/main.cpp`
 
+# Recipe json validation against schema
 
-
-
-
+A schema for the recipe json is available in
+[schema](schema/recipe.schema.json).  A recipe can be validated
+against the schema by running [schema-validator.py](test/schema-validator.py):
+```
+% python3 schema-validator.py recipe.json schema\recipe.schema.json
+JSON is valid against the schema.
+```

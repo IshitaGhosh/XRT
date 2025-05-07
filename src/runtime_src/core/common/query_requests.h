@@ -573,7 +573,8 @@ struct xrt_smi_lists : request
 {
   enum class type {
     validate_tests,
-    examine_reports
+    examine_reports,
+    configure_option_options,
   };
   using result_type = std::vector<std::tuple<std::string, std::string, std::string>>;
   static const key_type key = key_type::xrt_smi_lists;
@@ -650,8 +651,7 @@ struct sequence_name : request
     df_bandwidth,
     tct_one_column,
     tct_all_column,
-    gemm_int8,
-    aie_reconfig_overhead
+    gemm_int8
   };
 
   static std::string
@@ -666,8 +666,6 @@ struct sequence_name : request
         return "tct_all_column";
       case type::gemm_int8:
         return "gemm_int8";
-      case type::aie_reconfig_overhead:
-        return "aie_reconfig_overhead";
     }
     return "unknown";
   }
@@ -1955,6 +1953,7 @@ struct aie_partition_info : request
     uint64_t    errors = 0;
     uint64_t    pasid = 0;
     qos_info    qos {};
+    uint64_t    suspensions;    // Suspensions by context switching and idle detection
   };
 
   using result_type = std::vector<struct data>;
