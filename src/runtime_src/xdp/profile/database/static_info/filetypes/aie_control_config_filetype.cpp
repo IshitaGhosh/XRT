@@ -289,7 +289,7 @@ AIEControlConfigFiletype::getActiveMicroControllers() const
   auto activeUCs = aie_meta.get_child_optional("Microcontrollers");
   if (!activeUCs) {
     xrt_core::message::send(severity_level::info, "XRT", getMessage("Microcontrollers"));
-    return {}
+    return {};
   }
   std::vector<uint8_t> activeUCcols;
   for (auto const &activeUC : activeUCs.get()) {
