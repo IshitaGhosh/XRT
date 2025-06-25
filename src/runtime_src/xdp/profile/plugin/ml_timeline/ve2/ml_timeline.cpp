@@ -99,7 +99,10 @@ namespace xdp {
 
     mNumBufSegments = xrt_core::config::get_ml_timeline_settings_num_buffer_segments();
     if (0 == mNumBufSegments) {
-      auto activeUCs = (db->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
+      //auto activeUCs = (db->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
+      boost::property_tree::ptree aieMetadata;
+      std::unique_ptr<aie::BaseFiletypeImpl> metadataReader = aie::readAIEMetadata("aie_trace_config.json", aieMetadata);
+      auto activeUCs = metadataReader->getActiveMicroControllers();
       mNumBufSegments = activeUCs.size();
       uint32_t  segmentSzInBytes = mBufSz / mNumBufSegments;
 
