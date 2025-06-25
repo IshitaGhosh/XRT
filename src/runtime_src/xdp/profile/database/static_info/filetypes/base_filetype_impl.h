@@ -71,6 +71,9 @@ class BaseFiletypeImpl {
                             uint8_t minCol = 0,
                             uint8_t maxCol = 0) const = 0;
 
+        virtual std::vector<uint8_t>
+        getActiveMicroControllers() const = 0;
+
         virtual 
         std::vector<tile_type>
         getInterfaceTiles(const std::string& graphName,

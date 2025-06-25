@@ -280,6 +280,24 @@ AIEControlConfigFiletype::getMicrocontrollers(bool useColumn,
     return tiles;
 }
 
+std::vector<uint8_t>
+AIEControlConfigFiletype::getActiveMicroControllers() const
+{
+  if (getHardwareGeneration() != 5)
+    return {};
+
+  auto activeUCs = aie_meta.get_child_optional("Microcontrollers");
+  if (!activeUCs) {
+    xrt_core::message::send(severity_level::info, "XRT", getMessage("Microcontrollers"));
+    return {}
+  }
+  std::vector<uint8_t> activeUCcols;
+  for (auto const &activeUC : activeUCs.get()) {
+    activeUCcols.push_back(activeUC.second.get<uint8_t>("shim_column"));
+  }
+  return activeUCcols;
+}
+
 std::vector<tile_type>
 AIEControlConfigFiletype::getInterfaceTiles(const std::string& graphName,
                                             const std::string& portName,
