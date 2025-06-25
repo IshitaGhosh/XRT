@@ -31,6 +31,7 @@
 #include "core/include/xrt/xrt_bo.h"
 #include "core/include/xrt/xrt_kernel.h"
 
+#include "xdp/profile/database/database.h"
 #include "xdp/profile/database/static_info/aie_util.h"
 #include "xdp/profile/plugin/ml_timeline/ve2/ml_timeline.h"
 #include "xdp/profile/plugin/vp_base/utility.h"
@@ -98,11 +99,11 @@ namespace xdp {
 
     mNumBufSegments = xrt_core::config::get_ml_timeline_settings_num_buffer_segments();
     if (0 == mNumBufSegments) {
-      auto activeUCs = ((VPDatabase::Instance())->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
+      auto activeUCs = (db->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
       mNumBufSegments = activeUCs.size();
       uint32_t  segmentSzInBytes = mBufSz / mNumBufSegments;
 
-      std::map<unsigned int, unsigned int> activeUCsegmentMap;
+      std::map<uint32_t, size_t> activeUCsegmentMap;
       for (auto uCcol : activeUCs) {
         activeUCsegmentMap[uCcol] =  segmentSzInBytes;
       }
