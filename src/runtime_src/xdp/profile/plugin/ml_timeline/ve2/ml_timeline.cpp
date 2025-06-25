@@ -98,6 +98,17 @@ namespace xdp {
 
     mNumBufSegments = xrt_core::config::get_ml_timeline_settings_num_buffer_segments();
     if (0 == mNumBufSegments) {
+      auto activeUCs = (db->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
+      mNumBufSegments = activeUCs.size();
+      uint32_t  segmentSzInBytes = mBufSz / mNumBufSegments;
+
+      std::map<unsigned int, unsigned int> activeUCsegmentMap;
+      for (auto uCcol : activeUCs) {
+        activeUCsegmentMap[uCcol] =  segmentSzInBytes;
+      }
+      xrt_core::bo_int::config_bo(mBO, activeUCsegmentMap);
+
+#if 0
       /* User has not specified "ML_timeline_settings.num_buffer_segments".
        * By default set it to number of cols in the current partition.
        * For now, assume last entry in aie_partition_info corresponds to current HW Context.
@@ -109,6 +120,7 @@ namespace xdp {
           << " By default, assuming " << mNumBufSegments << " segments in buffer."
           << " Please check the number of columns used by the design." << std::endl;
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", numSegmentMsg.str());
+#endif
     }
 
   }
