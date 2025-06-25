@@ -98,7 +98,7 @@ namespace xdp {
 
     mNumBufSegments = xrt_core::config::get_ml_timeline_settings_num_buffer_segments();
     if (0 == mNumBufSegments) {
-      auto activeUCs = (db->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
+      auto activeUCs = ((VPDatabase::Instance())->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
       mNumBufSegments = activeUCs.size();
       uint32_t  segmentSzInBytes = mBufSz / mNumBufSegments;
 
@@ -106,7 +106,7 @@ namespace xdp {
       for (auto uCcol : activeUCs) {
         activeUCsegmentMap[uCcol] =  segmentSzInBytes;
       }
-      xrt_core::bo_int::config_bo(mBO, activeUCsegmentMap);
+      xrt_core::bo_int::config_bo(mResultBOHolder->mBO, activeUCsegmentMap);
 
 #if 0
       /* User has not specified "ML_timeline_settings.num_buffer_segments".
