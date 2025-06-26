@@ -106,10 +106,19 @@ namespace xdp {
       mNumBufSegments = activeUCs.size();
       uint32_t  segmentSzInBytes = mBufSz / mNumBufSegments;
 
+      std::stringstream m;
+      m << " ucs i.e. buf segments" << mNumBufSegments << " size " <<  segmentSzInBytes << std::endl;
+      
+
       std::map<uint32_t, size_t> activeUCsegmentMap;
       for (auto uCcol : activeUCs) {
-        activeUCsegmentMap[uCcol] =  segmentSzInBytes;
+        activeUCsegmentMap[uCcol] = segmentSzInBytes;
       }
+      for (auto e : activeUCsegmentMap) {
+        m << " active uc : index " << e.first << " segment size " << e.second << std::endl; 
+      }
+      m << " map built.. now calling config " << std::endl;
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", m.str());
       xrt_core::bo_int::config_bo(mResultBOHolder->mBO, activeUCsegmentMap);
       } else {
         xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Metadata reader is null");
