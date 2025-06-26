@@ -97,12 +97,12 @@ namespace xdp {
     xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", 
               "Allocated buffer In MLTimelineVE2Impl::updateDevice");
 
-    mNumBufSegments = xrt_core::config::get_ml_timeline_settings_num_buffer_segments();
     if (0 == mNumBufSegments) {
-      //auto activeUCs = (db->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
-      boost::property_tree::ptree aieMetadata;
-      std::unique_ptr<aie::BaseFiletypeImpl> metadataReader = aie::readAIEMetadata("aie_trace_config.json", aieMetadata);
-      auto activeUCs = metadataReader->getActiveMicroControllers();
+      if ((db->getStaticInfo()).getAIEmetadataReader()) {
+      auto activeUCs = (db->getStaticInfo()).getAIEmetadataReader()->getActiveMicroControllers();
+      //boost::property_tree::ptree aieMetadata;
+      //std::unique_ptr<aie::BaseFiletypeImpl> metadataReader = aie::readAIEMetadata("aie_trace_config.json", aieMetadata);
+      //auto activeUCs = metadataReader->getActiveMicroControllers();
       mNumBufSegments = activeUCs.size();
       uint32_t  segmentSzInBytes = mBufSz / mNumBufSegments;
 
@@ -111,6 +111,9 @@ namespace xdp {
         activeUCsegmentMap[uCcol] =  segmentSzInBytes;
       }
       xrt_core::bo_int::config_bo(mResultBOHolder->mBO, activeUCsegmentMap);
+      } else {
+        xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "Metadata reader is null");
+      }
 
 #if 0
       /* User has not specified "ML_timeline_settings.num_buffer_segments".
