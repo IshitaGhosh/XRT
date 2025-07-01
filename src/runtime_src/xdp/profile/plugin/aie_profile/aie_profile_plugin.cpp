@@ -77,7 +77,7 @@ namespace xdp {
     if (itr != handleToAIEData.end())
       return itr->second.deviceID;
 
-    return (db->getStaticInfo()).getXDPUniqueId(handle);
+    return (db->getStaticInfo()).getDeviceContextUniqueId(handle);
 
 #if 0
 
