@@ -203,7 +203,7 @@ auto time = std::time(nullptr);
     db->getStaticInfo().addOpenedFile(writer->getcurrentFileName(), "AIE_PROFILE");
 
   // Start the AIE profiling thread
-  #ifdef XDP_CLIENT_BUILD
+  #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
       AIEData.threadCtrlBool = false;
   #else
       AIEData.threadCtrlBool = true;
@@ -261,8 +261,8 @@ auto time = std::time(nullptr);
     if (AIEData.thread.joinable())
       AIEData.thread.join();
 
-    #ifdef XDP_CLIENT_BUILD
-      AIEData.implementation->poll(0, handle);
+    #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
+      AIEData.implementation->poll(AIEData.deviceID, handle);
     #endif
 
     if (AIEData.implementation)
@@ -274,9 +274,9 @@ auto time = std::time(nullptr);
   {
     xrt_core::message::send(severity_level::info, "XRT", "Calling AIE Profile endPoll.");
 
-    #ifdef XDP_CLIENT_BUILD
+    #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
       auto& AIEData = handleToAIEData.begin()->second;
-      AIEData.implementation->poll(0, nullptr);
+      AIEData.implementation->poll(AIEData.deviceID, nullptr);
     #endif
     // Ask all threads to end
     for (auto& p : handleToAIEData)
