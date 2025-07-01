@@ -111,6 +111,8 @@ namespace xdp {
       if(!checkAieDevice(metadata->getDeviceID(), metadata->getHandle()))
               return;
 
+      aieDevInst = db->getStaticInfo().getAieDevInst(fetchAieDevInst, metadata->getHandle());
+
       bool runtimeCounters = setMetricsSettings(metadata->getDeviceID(), metadata->getHandle());
   
       if (!runtimeCounters) {
@@ -509,8 +511,8 @@ namespace xdp {
     // Wait until xclbin has been loaded and device has been updated in database
     if (!(db->getStaticInfo().isDeviceReady(index)))
       return;
-    XAie_DevInst* aieDevInst =
-      static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle)) ;
+    //XAie_DevInst* aieDevInst =
+    //  static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle)) ;
     if (!aieDevInst)
       return;
 

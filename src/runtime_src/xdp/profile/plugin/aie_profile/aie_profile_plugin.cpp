@@ -275,8 +275,10 @@ auto time = std::time(nullptr);
     xrt_core::message::send(severity_level::info, "XRT", "Calling AIE Profile endPoll.");
 
     #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
-      auto& AIEData = handleToAIEData.begin()->second;
-      AIEData.implementation->poll(AIEData.deviceID, nullptr);
+      for (auto& p : handleToAIEData) {
+        auto& AIEData = p.second;
+        AIEData.implementation->poll(AIEData.deviceID, nullptr);
+      }
     #endif
     // Ask all threads to end
     for (auto& p : handleToAIEData)
