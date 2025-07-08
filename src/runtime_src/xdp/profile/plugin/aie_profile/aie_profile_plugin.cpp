@@ -71,11 +71,14 @@ namespace xdp {
     return AieProfilePlugin::live;
   }
 
-  uint64_t AieProfilePlugin::getDeviceIDFromHandle(void* handle, bool hw_context_flow)
+  uint64_t AieProfilePlugin::getDeviceIDFromHandle(void* handle, bool )
   {
     auto itr = handleToAIEData.find(handle);
     if (itr != handleToAIEData.end())
       return itr->second.deviceID;
+
+    return (db->getStaticInfo()).getDeviceContextUniqueId(handle);
+#if 0
 
 #ifdef XDP_CLIENT_BUILD
     (void)(hw_context_flow);
@@ -85,6 +88,7 @@ namespace xdp {
       return db->addDevice("ve2_device"); // Both VE2 and Edge will reach here
     else
       return db->addDevice(util::getDebugIpLayoutPath(handle));  // Get the unique device Id. Edge load_xclbin flow 
+#endif
 #endif
   }
 
@@ -193,7 +197,7 @@ auto time = std::time(nullptr);
     timeOss << std::put_time(&tm, "_%Y_%m_%d_%H%M%S");
     std::string timestamp = timeOss.str();
 
-    std::string outputFile = "aie_profile_" + deviceName + timestamp + ".csv";
+    std::string outputFile = "aie_profile_" + deviceName + "_" + std::to_string(deviceID) + timestamp + ".csv";
 
     VPWriter* writer = new AIEProfilingWriter(outputFile.c_str(), deviceName.c_str(), mIndex);
     writers.push_back(writer);
