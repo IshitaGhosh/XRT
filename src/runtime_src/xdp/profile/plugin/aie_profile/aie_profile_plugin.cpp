@@ -158,10 +158,13 @@ namespace xdp {
     AIEData.implementation = std::make_unique<AieProfile_WinImpl>(db, AIEData.metadata);
 #elif defined(XRT_X86_BUILD)
     AIEData.implementation = std::make_unique<AieProfile_x86Impl>(db, AIEData.metadata);
+    void (AieProfile_x86Impl::*pollMethodPtr)(const uint32_t, void*) = &AieProfile_x86Impl::poll;
 #elif XDP_VE2_BUILD
     AIEData.implementation = std::make_unique<AieProfile_VE2Impl>(db, AIEData.metadata);
+    void (AieProfile_VE2Impl::*pollMethodPtr)(const uint32_t, void*) = &AieProfile_VE2Impl::poll;
 #else
     AIEData.implementation = std::make_unique<AieProfile_EdgeImpl>(db, AIEData.metadata);
+    void (AieProfile_EdgeImpl::*pollMethodPtr)(const uint32_t, void*) = &AieProfile_EdgeImpl::poll;
 #endif
     auto& implementation = AIEData.implementation;
 
@@ -204,17 +207,23 @@ auto time = std::time(nullptr);
       AIEData.threadCtrlBool = false;
   #else
       AIEData.threadCtrlBool = true;
+      auto device_thread = std::thread(pollMethodPtr, AIEData.implementation, mIndex, handle);
+      AIEData.thread = std::move(device_thread);
+      xrt_core::message::send(severity_level::warning, "XRT", "New AIEProfileImpl poll thread started.");
+  #if 0
       auto device_thread = std::thread(&AieProfilePlugin::pollAIECounters, this, mIndex, handleToAIEData.begin()->first);
       AIEData.thread = std::move(device_thread);
       xrt_core::message::send(severity_level::warning, "XRT", "AIEProfile pollAIECounters thread started.");
+  #endif
   #endif
 
      ++mIndex;
 
   }
 
-  void AieProfilePlugin::pollAIECounters(const uint32_t index, void* handle)
+  void AieProfilePlugin::pollAIECounters(const uint32_t /*index*/, void* /*handle*/)
   {
+  #if 0
     auto it = handleToAIEData.find(handle);
     if (it == handleToAIEData.end())
       return;
@@ -226,6 +235,7 @@ auto time = std::time(nullptr);
     }
     //Final Polling Operation
     handleToAIEData[handle].implementation->poll(index, handle);
+  #endif
   }
 
   void AieProfilePlugin::writeAll(bool /*openNewFiles*/)
