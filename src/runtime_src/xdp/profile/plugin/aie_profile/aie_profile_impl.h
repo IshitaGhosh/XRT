@@ -17,6 +17,8 @@
 #ifndef AIE_PROFILE_IMPL_H
 #define AIE_PROFILE_IMPL_H
 
+#include <thread>
+
 #include "aie_profile_metadata.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 
@@ -34,9 +36,15 @@ namespace xdp {
     VPDatabase* db = nullptr;
     std::shared_ptr<AieProfileMetadata> metadata;
 
+
   public:
+
+    std::atomic<bool> threadCtrlBool;
+    std::thread* thread;
+
     AieProfileImpl(VPDatabase* database, std::shared_ptr<AieProfileMetadata> metadata)
-      :db(database), metadata(metadata) {}
+      :db(database), metadata(metadata), threadCtrlBool(false), thread(nullptr)
+   {}
 
     AieProfileImpl() = delete;
     virtual ~AieProfileImpl() {};

@@ -503,13 +503,34 @@ namespace xdp {
     return runtimeCounters;
   }
 
+
+  void AieProfile_EdgeImpl::startPoll(const uint32_t index, void* handle)
+  {
+    xrt_core::message::send(severity_level::debug, "XRT", " In AieProfile_EdgeImpl::startPoll");
+    thread = new std::thread(&AieProfile_EdgeImpl::continuePoll, this, index, handle); 
+    xrt_core::message::send(severity_level::debug, "XRT", " In AieProfile_EdgeImpl::startPoll, after creating thread instance");
+  }
+
+  void AieProfile_EdgeImpl::continuePoll(const uint32_t index, void* handle)
+  {
+    xrt_core::message::send(severity_level::debug, "XRT", " In AieProfile_EdgeImpl::continuePoll");
+
+    while (threadCtrlBool) {
+      poll(index, handle);
+      std::this_thread::sleep_for(std::chrono::microseconds(metadata->getPollingIntervalVal()));
+    }
+    //Final Polling Operation
+    poll(index, handle);
+  }
+
+
   void AieProfile_EdgeImpl::poll(const uint32_t index, void* handle)
   {
     // Wait until xclbin has been loaded and device has been updated in database
     if (!(db->getStaticInfo().isDeviceReady(index)))
       return;
-    XAie_DevInst* aieDevInst =
-      static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle)) ;
+    //XAie_DevInst* aieDevInst =
+    //  static_cast<XAie_DevInst*>(db->getStaticInfo().getAieDevInst(fetchAieDevInst, handle)) ;
     if (!aieDevInst)
       return;
 
