@@ -50,6 +50,7 @@ namespace xdp {
     virtual ~AieProfileImpl() {};
 
     virtual void updateDevice() = 0;
+    virtual void startPoll(const uint32_t index, void* handle) = 0;
     virtual void poll(const uint32_t index, void* handle) = 0;
     virtual void freeResources() = 0;
   };
