@@ -204,7 +204,6 @@ auto time = std::time(nullptr);
       AIEData.implementation->threadCtrlBool = false;
   #else
       AIEData.implementation->threadCtrlBool = true;
-      (void)pollMethodPtr;
       AIEData.implementation->startPoll(mIndex, handle);
       xrt_core::message::send(severity_level::warning, "XRT", "After returning from Impl startPoll");
   #endif
