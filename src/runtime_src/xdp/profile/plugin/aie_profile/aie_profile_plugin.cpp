@@ -201,6 +201,15 @@ auto time = std::time(nullptr);
 
   // Start the AIE profiling thread
   #ifdef XDP_CLIENT_BUILD
+      AIEData.implementation->threadCtrlBool = false;
+  #else
+      AIEData.implementation->threadCtrlBool = true;
+      (void)pollMethodPtr;
+      AIEData.implementation->startPoll(mIndex, handle);
+      xrt_core::message::send(severity_level::warning, "XRT", "After returning from Impl startPoll");
+  #endif
+  #if 0
+  #ifdef XDP_CLIENT_BUILD
       AIEData.threadCtrlBool = false;
   #else
       AIEData.threadCtrlBool = true;
@@ -208,13 +217,15 @@ auto time = std::time(nullptr);
       AIEData.thread = std::move(device_thread);
       xrt_core::message::send(severity_level::warning, "XRT", "AIEProfile pollAIECounters thread started.");
   #endif
+  #endif
 
      ++mIndex;
 
   }
 
-  void AieProfilePlugin::pollAIECounters(const uint32_t index, void* handle)
+  void AieProfilePlugin::pollAIECounters(const uint32_t , void* )
   {
+  #if 0
     auto it = handleToAIEData.find(handle);
     if (it == handleToAIEData.end())
       return;
@@ -226,6 +237,7 @@ auto time = std::time(nullptr);
     }
     //Final Polling Operation
     handleToAIEData[handle].implementation->poll(index, handle);
+  #endif
   }
 
   void AieProfilePlugin::writeAll(bool /*openNewFiles*/)
@@ -253,10 +265,13 @@ auto time = std::time(nullptr);
     }
 
     // Ask thread to stop
-    AIEData.threadCtrlBool = false;
+    AIEData.implementation->threadCtrlBool = false;
 
-    if (AIEData.thread.joinable())
-      AIEData.thread.join();
+    if (AIEData.implementation->thread && AIEData.implementation->thread->joinable())
+      AIEData.implementation->thread->join();
+    delete AIEData.implementation->thread;
+    AIEData.implementation->thread = nullptr;
+
 
     #ifdef XDP_CLIENT_BUILD
       AIEData.implementation->poll(0, handle);
@@ -277,12 +292,16 @@ auto time = std::time(nullptr);
     #endif
     // Ask all threads to end
     for (auto& p : handleToAIEData)
-      p.second.threadCtrlBool = false;
+      p.second.implementation->threadCtrlBool = false;
 
     for (auto& p : handleToAIEData) {
       auto& data = p.second;
-      if (data.thread.joinable())
-        data.thread.join();
+      if (data.implementation->thread && data.implementation->thread->joinable())
+        data.implementation->thread->join();
+
+      delete data.implementation->thread;
+      data.implementation->thread = nullptr;
+
       if (data.implementation)
         data.implementation->freeResources();
     }
