@@ -267,6 +267,9 @@ auto time = std::time(nullptr);
       return;
     }
 
+    if (!AIEData.implementation) {
+      return;
+    }
     // Ask thread to stop
     AIEData.implementation->threadCtrlBool = false;
 
@@ -293,11 +296,17 @@ auto time = std::time(nullptr);
       AIEData.implementation->poll(0, nullptr);
     #endif
     // Ask all threads to end
-    for (auto& p : handleToAIEData)
+    for (auto& p : handleToAIEData) {
+      if (!p.second.implementation)
+        continue
       p.second.implementation->threadCtrlBool = false;
+    }
 
     for (auto& p : handleToAIEData) {
       auto& data = p.second;
+      if (!data.implementation)
+        continue
+
       if (data.implementation->thread && data.implementation->thread->joinable())
         data.implementation->thread->join();
 
