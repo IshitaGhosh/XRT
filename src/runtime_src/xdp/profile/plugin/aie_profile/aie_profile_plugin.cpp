@@ -298,14 +298,14 @@ auto time = std::time(nullptr);
     // Ask all threads to end
     for (auto& p : handleToAIEData) {
       if (!p.second.implementation)
-        continue
+        continue;
       p.second.implementation->threadCtrlBool = false;
     }
 
     for (auto& p : handleToAIEData) {
       auto& data = p.second;
       if (!data.implementation)
-        continue
+        continue;
 
       if (data.implementation->thread && data.implementation->thread->joinable())
         data.implementation->thread->join();
