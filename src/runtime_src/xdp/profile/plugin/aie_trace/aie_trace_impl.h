@@ -18,8 +18,20 @@
 #define AIE_TRACE_IMPL_H
 
 #include "aie_trace_metadata.h"
+#include "xdp/profile/database/events/creator/aie_trace_data_logger.h"
+
+#ifdef XDP_CLIENT_BUILD
+#include "xdp/profile/device/aie_trace/client/aie_trace_offload_client.h"
+#elif XDP_VE2_BUILD
+#include "xdp/profile/device/aie_trace/ve2/aie_trace_offload_ve2.h"
+#else
+#include "xdp/profile/device/aie_trace/aie_trace_offload.h"
+#endif
+
+
 #include <cstdint>
 #include <memory>
+#include <thread>
 
 namespace xdp {
   
@@ -35,6 +47,7 @@ namespace xdp {
    */ 
   class AieTraceImpl {
   public:
+
     /**
      * @brief AIE Trace implementation constructor
      * @param database Profile database for storing results and configuation 
@@ -52,7 +65,7 @@ namespace xdp {
     VPDatabase* db = nullptr;
 
     /// @brief Trace metadata parsed from user settings
-    std::shared_ptr<AieTraceMetadata> metadata;
+    //std::shared_ptr<AieTraceMetadata> metadata;
 
   public:
     /// @brief Update device (e.g., after loading xclbin)
@@ -88,6 +101,10 @@ namespace xdp {
      * @return Pointer to AIE device instance
      */
     virtual void* setAieDeviceInst(void* handle) = 0;
+
+    std::unique_ptr<AIETraceOffload> offloader;
+    std::unique_ptr<AIETraceLogger> logger;
+    std::shared_ptr<AieTraceMetadata> metadata;
   };
 
 } // namespace xdp

@@ -91,8 +91,7 @@ namespace xdp {
     std::map<std::string, bool> softwareEmulationMemUsage ;
     std::vector<std::string> softwareEmulationPortBitWidths ;
 
-    // Information tracks valid tiles type and and it's metric settings
-    AIEProfileFinalConfig aieProfileConfig;
+
 
     // Device Specific Information mapped to the Unique Device Id
     std::map<uint64_t, std::unique_ptr<DeviceInfo>> deviceInfo;
@@ -113,8 +112,12 @@ namespace xdp {
     void* aieDevInst = nullptr ; // XAie_DevInst
     void* aieDevice = nullptr ; // xaiefal::XAieDev
     std::function<void (void*)> deallocateAieDevice = nullptr ;
-    boost::property_tree::ptree aieMetadata;
-    std::unique_ptr<aie::BaseFiletypeImpl> metadataReader = nullptr;
+
+    // Information tracks valid tiles type and and it's metric settings
+    AIEProfileFinalConfig aieProfileConfig;
+    //boost::property_tree::ptree aieMetadata;
+    //std::unique_ptr<aie::BaseFiletypeImpl> metadataReader = nullptr;
+    std::map<uint64_t, std::unique_ptr<aie::BaseFiletypeImpl>> metadataReaders;
 
     /* The very first XDP Plugin update device (except PL Deadlock Plugin,
      * ML Timeline etc.) sets the Application Style internally.
@@ -397,8 +400,8 @@ namespace xdp {
                                   std::function<void (void*)> deallocate,
                                   void* devHandle) ;
 
-    XDP_CORE_EXPORT void readAIEMetadata(xrt::xclbin xrtXclbin, bool checkDisk);
-    XDP_CORE_EXPORT const aie::BaseFiletypeImpl* getAIEmetadataReader() const;
+    XDP_CORE_EXPORT void readAIEMetadata(uint64_t deviceId, xrt::xclbin xrtXclbin, bool checkDisk);
+    XDP_CORE_EXPORT const aie::BaseFiletypeImpl* getAIEmetadataReader(uint64_t deviceId) const;
 
     // ************************************************************************
     // ***** Functions for information from a specific xclbin on a device *****

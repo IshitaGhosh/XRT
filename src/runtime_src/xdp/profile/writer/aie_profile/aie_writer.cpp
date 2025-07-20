@@ -57,7 +57,7 @@ namespace xdp {
 
   void AIEProfilingWriter::writeMetricSettings()
   {
-    auto metadataReader = (db->getStaticInfo()).getAIEmetadataReader();
+    auto metadataReader = (db->getStaticInfo()).getAIEmetadataReader(mDeviceIndex);
     uint8_t col_shift = metadataReader->getPartitionOverlayStartCols().front();
     auto validConfig = (db->getStaticInfo()).getProfileConfig();
 
