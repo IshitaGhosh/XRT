@@ -469,6 +469,9 @@ namespace xrt_core::xdp::aie::trace {
 
 std::function<void (void*, bool)> update_device_cb;
 std::function<void (void*)> end_trace_cb;
+std::function<void(void*, void*, uint32_t, const char*, void*)> run_constructor_cb;
+std::function<void(void*, void*, uint32_t, const char*)> run_start_cb;
+std::function<void(void*, void*, uint32_t, const char*, int)> run_wait_cb;
 
 
 void 
