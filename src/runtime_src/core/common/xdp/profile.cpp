@@ -476,9 +476,16 @@ register_callbacks(void* handle)
 {  
     using ftype = void (*)(void*);
     using utype = void (*)(void*, bool);
+    using rctype = void (*)(void*, void*, uint32_t, const char*, void*);
+    using rsctype = void (*)(void*, void*, uint32_t, const char*);
+    using rwctype = void (*)(void*, void*, uint32_t, const char*, int);1
 
     end_trace_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "finishFlushAIEDevice"));
     update_device_cb = reinterpret_cast<utype>(xrt_core::dlsym(handle, "updateAIEDevice"));
+    run_constructor_cb = reinterpret_cast<rctype>(xrt_core::dlsym(handle, "aieTraceRunConstructor"));
+    run_start_cb = reinterpret_cast<rsctype>(xrt_core::dlsym(handle, "aieTraceRunStart"));
+    run_wait_cb = reinterpret_cast<rwctype>(xrt_core::dlsym(handle, "aieTraceRunWait"));
+
 }
 
 void 
@@ -519,6 +526,56 @@ end_trace(void* handle)
   if (end_trace_cb)
     end_trace_cb(handle);
 }
+
+void
+run_constructor(xrt::run_impl* run_impl)
+{
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In trace run_constructor");
+  if (run_constructor_cb) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In trace run_constructor");
+    xrt_kernel_data data{};
+    xrt_core::kernel_int::get_xdp_kernel_data(run_impl, &data);
+    auto elf_hdl = data.mod ? xrt_core::module_int::get_elf_handle(data.mod) : nullptr;
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", data.name.c_str());
+    run_constructor_cb(run_impl,
+                       data.hwctx.get_handle().get(),
+                       data.uid,
+                       data.name.c_str(),
+                       elf_hdl.get());
+  }
+}
+
+void
+run_start(const xrt::run_impl* run_impl)
+{
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In trace run_start");
+  if (run_start_cb) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In trace run_start");
+    xrt_kernel_data data{};
+    xrt_core::kernel_int::get_xdp_kernel_data(run_impl, &data);
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", data.name.c_str());
+    run_start_cb(nullptr, data.hwctx.get_handle().get(),
+                data.uid,
+                data.name.c_str());
+  }
+}
+
+void
+run_wait(const xrt::run_impl* run_impl)
+{
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In trace run_wait");
+  if (run_wait_cb) {
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", "In trace run_wait");
+    xrt_kernel_data data{};
+    xrt_core::kernel_int::get_xdp_kernel_data(run_impl, &data);
+      xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT", data.name.c_str());
+    run_wait_cb(nullptr, data.hwctx.get_handle().get(),
+               data.uid,
+               data.name.c_str(),
+               data.ert_state);
+  }
+}
+
 
 } // end namespace xrt_core::xdp::aie::trace
 
@@ -949,28 +1006,34 @@ finish_flush_device(void* handle)
 void
 run_constructor(xrt::run_impl* run_impl)
 {
-  if (!xrt_core::config::get_aie_dtrace())
-    return;
+  // Each feature is gated independently so multiple XDP plugins can react
+  // to the same run construction without interfering with one another.
+  if (xrt_core::config::get_aie_dtrace())
+    xrt_core::xdp::aie::dtrace::run_constructor(run_impl);
 
-  xrt_core::xdp::aie::dtrace::run_constructor(run_impl);
+  if (xrt_core::config::get_aie_trace())
+    xrt_core::xdp::aie::trace::run_constructor(run_impl);
+
 }
 
 void
 run_start(const xrt::run_impl* run_impl)
 {
-  if (!xrt_core::config::get_aie_dtrace())
-    return;
+  if (xrt_core::config::get_aie_dtrace())
+    xrt_core::xdp::aie::dtrace::run_start(run_impl);
 
-  xrt_core::xdp::aie::dtrace::run_start(run_impl);
+  if (xrt_core::config::get_aie_trace())
+    xrt_core::xdp::aie::trace::run_start(run_impl);
 }
 
 void
 run_wait(const xrt::run_impl* run_impl)
 {
-  if (!xrt_core::config::get_aie_dtrace())
-    return;
+  if (xrt_core::config::get_aie_dtrace())
+    xrt_core::xdp::aie::dtrace::run_wait(run_impl);
 
-  xrt_core::xdp::aie::dtrace::run_wait(run_impl);
+  if (xrt_core::config::get_aie_trace())
+    xrt_core::xdp::aie::trace::run_wait(run_impl);
 }
 
 } // end namespace xrt_core::xdp
