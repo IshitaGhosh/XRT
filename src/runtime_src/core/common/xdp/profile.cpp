@@ -481,7 +481,7 @@ register_callbacks(void* handle)
     using utype = void (*)(void*, bool);
     using rctype = void (*)(void*, void*, uint32_t, const char*, void*);
     using rsctype = void (*)(void*, void*, uint32_t, const char*);
-    using rwctype = void (*)(void*, void*, uint32_t, const char*, int);1
+    using rwctype = void (*)(void*, void*, uint32_t, const char*, int);
 
     end_trace_cb = reinterpret_cast<ftype>(xrt_core::dlsym(handle, "finishFlushAIEDevice"));
     update_device_cb = reinterpret_cast<utype>(xrt_core::dlsym(handle, "updateAIEDevice"));
